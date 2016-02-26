@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 the original author or authors.
+ * Copyright 2012-2016 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -51,8 +51,8 @@ import org.apache.coyote.AbstractProtocol;
 import org.apache.coyote.ProtocolHandler;
 import org.apache.coyote.http11.AbstractHttp11JsseProtocol;
 import org.apache.coyote.http11.AbstractHttp11Protocol;
+
 import org.springframework.beans.BeanUtils;
-import org.springframework.boot.ApplicationTemp;
 import org.springframework.boot.context.embedded.AbstractEmbeddedServletContainerFactory;
 import org.springframework.boot.context.embedded.Compression;
 import org.springframework.boot.context.embedded.EmbeddedServletContainer;
@@ -85,6 +85,7 @@ import org.springframework.util.StringUtils;
  * @author Brock Mills
  * @author Stephane Nicoll
  * @author Andy Wilkinson
+ * @author Eddú Meléndez
  * @see #setPort(int)
  * @see #setContextLifecycleListeners(Collection)
  * @see TomcatEmbeddedServletContainer
@@ -179,6 +180,13 @@ public class TomcatEmbeddedServletContainerFactory
 		context.setParentClassLoader(
 				this.resourceLoader != null ? this.resourceLoader.getClassLoader()
 						: ClassUtils.getDefaultClassLoader());
+		try {
+			context.setUseRelativeRedirects(false);
+			context.setMapperContextRootRedirectEnabled(true);
+		}
+		catch (NoSuchMethodError ex) {
+			// Tomcat is < 8.0.30. Continue
+		}
 		SkipPatternJarScanner.apply(context, this.tldSkip);
 		WebappLoader loader = new WebappLoader(context.getParentClassLoader());
 		loader.setLoaderClass(TomcatEmbeddedWebappClassLoader.class.getName());
@@ -242,6 +250,9 @@ public class TomcatEmbeddedServletContainerFactory
 	protected void customizeConnector(Connector connector) {
 		int port = (getPort() >= 0 ? getPort() : 0);
 		connector.setPort(port);
+		if (StringUtils.hasText(this.getServerHeader())) {
+			connector.setAttribute("server", this.getServerHeader());
+		}
 		if (connector.getProtocolHandler() instanceof AbstractProtocol) {
 			customizeProtocol((AbstractProtocol<?>) connector.getProtocolHandler());
 		}
@@ -310,8 +321,11 @@ public class TomcatEmbeddedServletContainerFactory
 		protocol.setKeyPass(ssl.getKeyPassword());
 		protocol.setKeyAlias(ssl.getKeyAlias());
 		configureSslKeyStore(protocol, ssl);
-		String ciphers = StringUtils.arrayToCommaDelimitedString(ssl.getCiphers());
-		protocol.setCiphers(ciphers);
+		protocol.setCiphers(StringUtils.arrayToCommaDelimitedString(ssl.getCiphers()));
+		if (ssl.getEnabledProtocols() != null) {
+			protocol.setProperty("sslEnabledProtocols",
+					StringUtils.arrayToCommaDelimitedString(ssl.getEnabledProtocols()));
+		}
 		configureSslTrustStore(protocol, ssl);
 	}
 
@@ -330,7 +344,7 @@ public class TomcatEmbeddedServletContainerFactory
 		}
 		catch (FileNotFoundException ex) {
 			throw new EmbeddedServletContainerException(
-					"Could load key store: " + ex.getMessage(), ex);
+					"Could not load key store: " + ex.getMessage(), ex);
 		}
 		if (ssl.getKeyStoreType() != null) {
 			protocol.setKeystoreType(ssl.getKeyStoreType());
@@ -348,7 +362,7 @@ public class TomcatEmbeddedServletContainerFactory
 			}
 			catch (FileNotFoundException ex) {
 				throw new EmbeddedServletContainerException(
-						"Could load trust store: " + ex.getMessage(), ex);
+						"Could not load trust store: " + ex.getMessage(), ex);
 			}
 		}
 		protocol.setTruststorePass(ssl.getTrustStorePassword());
@@ -400,13 +414,20 @@ public class TomcatEmbeddedServletContainerFactory
 				manager = new StandardManager();
 				context.setManager(manager);
 			}
-			Assert.state(manager instanceof StandardManager,
-					"Unable to persist HTTP session state using manager type "
-							+ manager.getClass().getName());
-			File folder = new ApplicationTemp().getFolder("tomcat-sessions");
-			File file = new File(folder, "SESSIONS.ser");
-			((StandardManager) manager).setPathname(file.getAbsolutePath());
+			configurePersistSession(manager);
 		}
+		else {
+			context.addLifecycleListener(new DisablePersistSessionListener());
+		}
+	}
+
+	private void configurePersistSession(Manager manager) {
+		Assert.state(manager instanceof StandardManager,
+				"Unable to persist HTTP session state using manager type "
+						+ manager.getClass().getName());
+		File dir = getValidSessionStoreDir();
+		File file = new File(dir, "SESSIONS.ser");
+		((StandardManager) manager).setPathname(file.getAbsolutePath());
 	}
 
 	private long getSessionTimeoutInMinutes() {
@@ -442,27 +463,6 @@ public class TomcatEmbeddedServletContainerFactory
 	@Override
 	public void setResourceLoader(ResourceLoader resourceLoader) {
 		this.resourceLoader = resourceLoader;
-	}
-
-	/**
-	 * Returns the absolute temp dir for given web server.
-	 * @param prefix webserver name
-	 * @return The temp dir for given web server.
-	 */
-	protected File createTempDir(String prefix) {
-		try {
-			File tempFolder = File.createTempFile(prefix + ".", "." + getPort());
-			tempFolder.delete();
-			tempFolder.mkdir();
-			tempFolder.deleteOnExit();
-			return tempFolder;
-		}
-		catch (IOException ex) {
-			throw new EmbeddedServletContainerException(
-					"Unable to create Tomcat tempdir. java.io.tmpdir is set to "
-							+ System.getProperty("java.io.tmpdir"),
-					ex);
-		}
 	}
 
 	/**
@@ -659,6 +659,10 @@ public class TomcatEmbeddedServletContainerFactory
 
 	private static class TomcatErrorPage {
 
+		private static final String ERROR_PAGE_CLASS = "org.apache.tomcat.util.descriptor.web.ErrorPage";
+
+		private static final String LEGACY_ERROR_PAGE_CLASS = "org.apache.catalina.deploy.ErrorPage";
+
 		private final String location;
 
 		private final String exceptionType;
@@ -677,14 +681,13 @@ public class TomcatEmbeddedServletContainerFactory
 		private Object createNativePage(ErrorPage errorPage) {
 			Object nativePage = null;
 			try {
-				if (ClassUtils.isPresent(
-						"org.apache.tomcat.util.descriptor.web.ErrorPage", null)) {
-					nativePage = new org.apache.tomcat.util.descriptor.web.ErrorPage();
+				if (ClassUtils.isPresent(ERROR_PAGE_CLASS, null)) {
+					nativePage = BeanUtils
+							.instantiate(ClassUtils.forName(ERROR_PAGE_CLASS, null));
 				}
-				else if (ClassUtils.isPresent("org.apache.catalina.deploy.ErrorPage",
-						null)) {
-					nativePage = BeanUtils.instantiate(ClassUtils
-							.forName("org.apache.catalina.deploy.ErrorPage", null));
+				else if (ClassUtils.isPresent(LEGACY_ERROR_PAGE_CLASS, null)) {
+					nativePage = BeanUtils.instantiate(
+							ClassUtils.forName(LEGACY_ERROR_PAGE_CLASS, null));
 				}
 			}
 			catch (ClassNotFoundException ex) {
@@ -699,8 +702,7 @@ public class TomcatEmbeddedServletContainerFactory
 		public void addToContext(Context context) {
 			Assert.state(this.nativePage != null,
 					"Neither Tomcat 7 nor 8 detected so no native error page exists");
-			if (ClassUtils.isPresent("org.apache.tomcat.util.descriptor.web.ErrorPage",
-					null)) {
+			if (ClassUtils.isPresent(ERROR_PAGE_CLASS, null)) {
 				org.apache.tomcat.util.descriptor.web.ErrorPage errorPage = (org.apache.tomcat.util.descriptor.web.ErrorPage) this.nativePage;
 				errorPage.setLocation(this.location);
 				errorPage.setErrorCode(this.errorCode);
@@ -761,6 +763,26 @@ public class TomcatEmbeddedServletContainerFactory
 			}
 			catch (IOException ex) {
 				throw new IllegalStateException(ex);
+			}
+		}
+
+	}
+
+	/**
+	 * {@link LifecycleListener} to disable persistence in the {@link StandardManager}. A
+	 * {@link LifecycleListener} is used so not to interfere with Tomcat's default manager
+	 * creation logic.
+	 */
+	private static class DisablePersistSessionListener implements LifecycleListener {
+
+		@Override
+		public void lifecycleEvent(LifecycleEvent event) {
+			if (event.getType().equals(Lifecycle.START_EVENT)) {
+				Context context = (Context) event.getLifecycle();
+				Manager manager = context.getManager();
+				if (manager != null && manager instanceof StandardManager) {
+					((StandardManager) manager).setPathname(null);
+				}
 			}
 		}
 

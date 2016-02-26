@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 the original author or authors.
+ * Copyright 2012-2016 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,6 +37,7 @@ import org.apache.logging.log4j.core.config.ConfigurationSource;
 import org.apache.logging.log4j.core.config.LoggerConfig;
 import org.apache.logging.log4j.core.filter.AbstractFilter;
 import org.apache.logging.log4j.message.Message;
+
 import org.springframework.boot.logging.LogFile;
 import org.springframework.boot.logging.LogLevel;
 import org.springframework.boot.logging.LoggingInitializationContext;
@@ -45,6 +46,7 @@ import org.springframework.boot.logging.Slf4JLoggingSystem;
 import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 import org.springframework.util.ResourceUtils;
+import org.springframework.util.StringUtils;
 
 /**
  * {@link LoggingSystem} for <a href="http://logging.apache.org/log4j/2.x/">Log4j 2</a>.
@@ -155,9 +157,6 @@ public class Log4J2LoggingSystem extends Slf4JLoggingSystem {
 
 	protected void loadConfiguration(String location, LogFile logFile) {
 		Assert.notNull(location, "Location must not be null");
-		if (logFile != null) {
-			logFile.applyToSystemProperties();
-		}
 		try {
 			LoggerContext ctx = getLoggerContext();
 			URL url = ResourceUtils.getURL(location);
@@ -206,8 +205,9 @@ public class Log4J2LoggingSystem extends Slf4JLoggingSystem {
 		return getLoggerContext().getConfiguration().getLoggerConfig("");
 	}
 
-	private LoggerConfig getLoggerConfig(String loggerName) {
-		return getLoggerContext().getConfiguration().getLoggers().get(loggerName);
+	private LoggerConfig getLoggerConfig(String name) {
+		name = (StringUtils.hasText(name) ? name : LogManager.ROOT_LOGGER_NAME);
+		return getLoggerContext().getConfiguration().getLoggers().get(name);
 	}
 
 	private LoggerContext getLoggerContext() {

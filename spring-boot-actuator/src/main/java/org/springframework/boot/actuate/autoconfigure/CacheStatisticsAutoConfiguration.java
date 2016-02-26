@@ -18,7 +18,12 @@ package org.springframework.boot.actuate.autoconfigure;
 
 import javax.cache.Caching;
 
+import com.hazelcast.core.IMap;
+import com.hazelcast.spring.cache.HazelcastCache;
+import net.sf.ehcache.Ehcache;
+import net.sf.ehcache.statistics.StatisticsGateway;
 import org.infinispan.spring.provider.SpringCache;
+
 import org.springframework.boot.actuate.cache.CacheStatistics;
 import org.springframework.boot.actuate.cache.CacheStatisticsProvider;
 import org.springframework.boot.actuate.cache.ConcurrentMapCacheStatisticsProvider;
@@ -42,11 +47,6 @@ import org.springframework.cache.jcache.JCacheCache;
 import org.springframework.cache.support.NoOpCacheManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-
-import com.hazelcast.core.IMap;
-import com.hazelcast.spring.cache.HazelcastCache;
-
-import net.sf.ehcache.Ehcache;
 
 /**
  * {@link EnableAutoConfiguration Auto-configuration} for {@link CacheStatisticsProvider}
@@ -73,7 +73,7 @@ public class CacheStatisticsAutoConfiguration {
 	}
 
 	@Configuration
-	@ConditionalOnClass({ EhCacheCache.class, Ehcache.class })
+	@ConditionalOnClass({ EhCacheCache.class, Ehcache.class, StatisticsGateway.class })
 	static class EhCacheCacheStatisticsProviderConfiguration {
 
 		@Bean

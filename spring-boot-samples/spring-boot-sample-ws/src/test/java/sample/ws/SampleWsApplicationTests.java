@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2014 the original author or authors.
+ * Copyright 2012-2016 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,21 +24,19 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.test.IntegrationTest;
 import org.springframework.boot.test.OutputCapture;
 import org.springframework.boot.test.SpringApplicationConfiguration;
+import org.springframework.boot.test.WebIntegrationTest;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.ws.client.core.WebServiceTemplate;
 
-import static org.hamcrest.Matchers.containsString;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @SpringApplicationConfiguration(SampleWsApplication.class)
-@WebAppConfiguration
-@IntegrationTest("server.port=0")
+@WebIntegrationTest(randomPort = true)
 public class SampleWsApplicationTests {
 
 	@Rule
@@ -69,7 +67,7 @@ public class SampleWsApplicationTests {
 		StreamResult result = new StreamResult(System.out);
 
 		this.webServiceTemplate.sendSourceAndReceiveToResult(source, result);
-		assertThat(this.output.toString(), containsString("Booking holiday for"));
+		assertThat(this.output.toString()).contains("Booking holiday for");
 	}
 
 }

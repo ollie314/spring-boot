@@ -31,6 +31,7 @@ import javax.servlet.ServletException;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+
 import org.springframework.util.Assert;
 
 /**
@@ -260,13 +261,13 @@ abstract class AbstractFilterRegistrationBean extends RegistrationBean {
 					DEFAULT_URL_MAPPINGS);
 		}
 		else {
-			if (servletNames.size() > 0) {
+			if (!servletNames.isEmpty()) {
 				this.logger.info("Mapping filter: '" + registration.getName()
 						+ "' to servlets: " + servletNames);
 				registration.addMappingForServletNames(dispatcherTypes, this.matchAfter,
 						servletNames.toArray(new String[servletNames.size()]));
 			}
-			if (this.urlPatterns.size() > 0) {
+			if (!this.urlPatterns.isEmpty()) {
 				this.logger.info("Mapping filter: '" + registration.getName()
 						+ "' to urls: " + this.urlPatterns);
 				registration.addMappingForUrlPatterns(dispatcherTypes, this.matchAfter,

@@ -24,6 +24,7 @@ import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.beans.factory.config.BeanDefinition;
@@ -47,7 +48,7 @@ import org.springframework.util.StringUtils;
  */
 public abstract class AutoConfigurationPackages {
 
-	private static Log logger = LogFactory.getLog(AutoConfigurationPackages.class);
+	private static final Log logger = LogFactory.getLog(AutoConfigurationPackages.class);
 
 	private static final String BEAN = AutoConfigurationPackages.class.getName();
 

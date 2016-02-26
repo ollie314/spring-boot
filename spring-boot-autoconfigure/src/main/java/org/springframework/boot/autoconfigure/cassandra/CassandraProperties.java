@@ -16,8 +16,6 @@
 
 package org.springframework.boot.autoconfigure.cassandra;
 
-import org.springframework.boot.context.properties.ConfigurationProperties;
-
 import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.ProtocolOptions;
 import com.datastax.driver.core.ProtocolOptions.Compression;
@@ -26,6 +24,8 @@ import com.datastax.driver.core.SocketOptions;
 import com.datastax.driver.core.policies.LoadBalancingPolicy;
 import com.datastax.driver.core.policies.ReconnectionPolicy;
 import com.datastax.driver.core.policies.RetryPolicy;
+
+import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
  * Configuration properties for Cassandra.
@@ -56,6 +56,16 @@ public class CassandraProperties {
 	 * Port of the Cassandra server.
 	 */
 	private int port = ProtocolOptions.DEFAULT_PORT;
+
+	/**
+	 * Login user of the server.
+	 */
+	private String username;
+
+	/**
+	 * Login password of the server.
+	 */
+	private String password;
 
 	/**
 	 * Compression supported by the Cassandra binary protocol.
@@ -137,6 +147,22 @@ public class CassandraProperties {
 
 	public void setPort(int port) {
 		this.port = port;
+	}
+
+	public String getUsername() {
+		return this.username;
+	}
+
+	public void setUsername(String username) {
+		this.username = username;
+	}
+
+	public String getPassword() {
+		return this.password;
+	}
+
+	public void setPassword(String password) {
+		this.password = password;
 	}
 
 	public Compression getCompression() {

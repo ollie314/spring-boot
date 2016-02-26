@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 the original author or authors.
+ * Copyright 2012-2016 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,6 +25,7 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+
 import org.springframework.boot.devtools.autoconfigure.OptionalLiveReloadServer;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
@@ -32,8 +33,7 @@ import org.springframework.http.client.ClientHttpRequest;
 import org.springframework.http.client.ClientHttpRequestFactory;
 import org.springframework.http.client.ClientHttpResponse;
 
-import static org.hamcrest.Matchers.greaterThan;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -118,7 +118,7 @@ public class DelayedLiveReloadTriggerTests {
 		long startTime = System.currentTimeMillis();
 		this.trigger.setTimings(10, 200, 30000);
 		this.trigger.run();
-		assertThat(System.currentTimeMillis() - startTime, greaterThan(300L));
+		assertThat(System.currentTimeMillis() - startTime).isGreaterThan(300L);
 		verify(this.liveReloadServer).triggerReload();
 	}
 

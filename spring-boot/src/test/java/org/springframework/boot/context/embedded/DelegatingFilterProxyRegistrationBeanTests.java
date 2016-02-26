@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 the original author or authors.
+ * Copyright 2012-2016 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,15 +19,14 @@ package org.springframework.boot.context.embedded;
 import javax.servlet.Filter;
 
 import org.junit.Test;
+
 import org.springframework.mock.web.MockServletContext;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.context.support.GenericWebApplicationContext;
 import org.springframework.web.filter.DelegatingFilterProxy;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Matchers.isA;
 
 /**
@@ -58,18 +57,18 @@ public class DelegatingFilterProxyRegistrationBeanTests
 	@Test
 	public void nameDefaultsToTargetBeanName() throws Exception {
 		assertThat(new DelegatingFilterProxyRegistrationBean("myFilter")
-				.getOrDeduceName(null), equalTo("myFilter"));
+				.getOrDeduceName(null)).isEqualTo("myFilter");
 	}
 
 	@Test
 	public void getFilterUsesDelegatingFilterProxy() throws Exception {
 		AbstractFilterRegistrationBean registrationBean = createFilterRegistrationBean();
 		Filter filter = registrationBean.getFilter();
-		assertThat(filter, instanceOf(DelegatingFilterProxy.class));
-		assertThat(ReflectionTestUtils.getField(filter, "webApplicationContext"),
-				equalTo((Object) this.applicationContext));
-		assertThat(ReflectionTestUtils.getField(filter, "targetBeanName"),
-				equalTo((Object) "mockFilter"));
+		assertThat(filter).isInstanceOf(DelegatingFilterProxy.class);
+		assertThat(ReflectionTestUtils.getField(filter, "webApplicationContext"))
+				.isEqualTo(this.applicationContext);
+		assertThat(ReflectionTestUtils.getField(filter, "targetBeanName"))
+				.isEqualTo("mockFilter");
 	}
 
 	@Test

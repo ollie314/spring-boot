@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 the original author or authors.
+ * Copyright 2012-2016 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ package org.springframework.boot.autoconfigure.data.elasticsearch;
 import org.elasticsearch.client.Client;
 import org.junit.After;
 import org.junit.Test;
+
 import org.springframework.boot.autoconfigure.PropertyPlaceholderAutoConfiguration;
 import org.springframework.boot.autoconfigure.TestAutoConfigurationPackage;
 import org.springframework.boot.autoconfigure.data.alt.elasticsearch.CityElasticsearchDbRepository;
@@ -30,7 +31,7 @@ import org.springframework.context.annotation.AnnotationConfigApplicationContext
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.elasticsearch.repository.config.EnableElasticsearchRepositories;
 
-import static org.junit.Assert.assertNotNull;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Tests for {@link ElasticsearchRepositoriesAutoConfiguration}.
@@ -56,8 +57,8 @@ public class ElasticsearchRepositoriesAutoConfigurationTests {
 				ElasticsearchDataAutoConfiguration.class,
 				PropertyPlaceholderAutoConfiguration.class);
 		this.context.refresh();
-		assertNotNull(this.context.getBean(CityRepository.class));
-		assertNotNull(this.context.getBean(Client.class));
+		assertThat(this.context.getBean(CityRepository.class)).isNotNull();
+		assertThat(this.context.getBean(Client.class)).isNotNull();
 	}
 
 	@Test
@@ -70,7 +71,7 @@ public class ElasticsearchRepositoriesAutoConfigurationTests {
 				ElasticsearchDataAutoConfiguration.class,
 				PropertyPlaceholderAutoConfiguration.class);
 		this.context.refresh();
-		assertNotNull(this.context.getBean(Client.class));
+		assertThat(this.context.getBean(Client.class)).isNotNull();
 	}
 
 	@Test
@@ -83,7 +84,7 @@ public class ElasticsearchRepositoriesAutoConfigurationTests {
 				ElasticsearchDataAutoConfiguration.class,
 				PropertyPlaceholderAutoConfiguration.class);
 		this.context.refresh();
-		assertNotNull(this.context.getBean(CityElasticsearchDbRepository.class));
+		assertThat(this.context.getBean(CityElasticsearchDbRepository.class)).isNotNull();
 	}
 
 	private void addElasticsearchProperties(AnnotationConfigApplicationContext context) {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 the original author or authors.
+ * Copyright 2012-2016 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,15 +17,19 @@
 package org.springframework.boot.autoconfigure.websocket;
 
 import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+
 import org.springframework.boot.autoconfigure.jackson.JacksonAutoConfiguration;
 import org.springframework.boot.autoconfigure.test.ImportAutoConfiguration;
 import org.springframework.boot.autoconfigure.web.DispatcherServletAutoConfiguration;
@@ -38,6 +42,8 @@ import org.springframework.boot.context.web.ServerPortInfoApplicationContextInit
 import org.springframework.boot.test.EnvironmentTestUtils;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.messaging.converter.CompositeMessageConverter;
+import org.springframework.messaging.converter.MessageConverter;
 import org.springframework.messaging.converter.SimpleMessageConverter;
 import org.springframework.messaging.simp.annotation.SubscribeMapping;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
@@ -48,9 +54,11 @@ import org.springframework.messaging.simp.stomp.StompSession;
 import org.springframework.messaging.simp.stomp.StompSessionHandler;
 import org.springframework.messaging.simp.stomp.StompSessionHandlerAdapter;
 import org.springframework.stereotype.Controller;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.socket.client.standard.StandardWebSocketClient;
 import org.springframework.web.socket.config.annotation.AbstractWebSocketMessageBrokerConfigurer;
+import org.springframework.web.socket.config.annotation.DelegatingWebSocketMessageBrokerConfiguration;
 import org.springframework.web.socket.config.annotation.EnableWebSocket;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
@@ -60,9 +68,7 @@ import org.springframework.web.socket.sockjs.client.SockJsClient;
 import org.springframework.web.socket.sockjs.client.Transport;
 import org.springframework.web.socket.sockjs.client.WebSocketTransport;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.fail;
 
 /**
@@ -91,7 +97,48 @@ public class WebSocketMessagingAutoConfigurationTests {
 	}
 
 	@Test
-	public void basicMessagingWithJson() throws Throwable {
+	public void basicMessagingWithJsonResponse() throws Throwable {
+		Object result = performStompSubscription("/app/json");
+		assertThat(new String((byte[]) result))
+				.isEqualTo(String.format("{%n  \"foo\" : 5,%n  \"bar\" : \"baz\"%n}"));
+	}
+
+	@Test
+	public void basicMessagingWithStringResponse() throws Throwable {
+		Object result = performStompSubscription("/app/string");
+		assertThat(new String((byte[]) result)).isEqualTo(String.format("string data"));
+	}
+
+	@Test
+	public void customizedConverterTypesMatchDefaultConverterTypes() {
+		List<MessageConverter> customizedConverters = getCustomizedConverters();
+		List<MessageConverter> defaultConverters = getDefaultConverters();
+		assertThat(customizedConverters.size()).isEqualTo(defaultConverters.size());
+		Iterator<MessageConverter> customizedIterator = customizedConverters.iterator();
+		Iterator<MessageConverter> defaultIterator = defaultConverters.iterator();
+		while (customizedIterator.hasNext()) {
+			assertThat(customizedIterator.next())
+					.isInstanceOf(defaultIterator.next().getClass());
+		}
+	}
+
+	private List<MessageConverter> getCustomizedConverters() {
+		List<MessageConverter> customizedConverters = new ArrayList<MessageConverter>();
+		WebSocketMessagingAutoConfiguration.WebSocketMessageConverterConfiguration configuration = new WebSocketMessagingAutoConfiguration.WebSocketMessageConverterConfiguration();
+		ReflectionTestUtils.setField(configuration, "objectMapper", new ObjectMapper());
+		configuration.configureMessageConverters(customizedConverters);
+		return customizedConverters;
+	}
+
+	@SuppressWarnings("unchecked")
+	private List<MessageConverter> getDefaultConverters() {
+		CompositeMessageConverter compositeDefaultConverter = new DelegatingWebSocketMessageBrokerConfiguration()
+				.brokerMessageConverter();
+		return (List<MessageConverter>) ReflectionTestUtils
+				.getField(compositeDefaultConverter, "converters");
+	}
+
+	private Object performStompSubscription(final String topic) throws Throwable {
 		EnvironmentTestUtils.addEnvironment(this.context, "server.port:0",
 				"spring.jackson.serialization.indent-output:true");
 		this.context.register(WebSocketMessagingConfiguration.class);
@@ -106,7 +153,7 @@ public class WebSocketMessagingAutoConfigurationTests {
 			@Override
 			public void afterConnected(StompSession session,
 					StompHeaders connectedHeaders) {
-				session.subscribe("/app/data", new StompFrameHandler() {
+				session.subscribe(topic, new StompFrameHandler() {
 
 					@Override
 					public void handleFrame(StompHeaders headers, Object payload) {
@@ -150,12 +197,9 @@ public class WebSocketMessagingAutoConfigurationTests {
 			if (failure.get() != null) {
 				throw failure.get();
 			}
-			else {
-				fail("Response was not received within 30 seconds");
-			}
+			fail("Response was not received within 30 seconds");
 		}
-		assertThat(new String((byte[]) result.get()),
-				is(equalTo(String.format("{%n  \"foo\" : 5,%n  \"bar\" : \"baz\"%n}"))));
+		return result.get();
 	}
 
 	@Configuration
@@ -191,7 +235,7 @@ public class WebSocketMessagingAutoConfigurationTests {
 		}
 
 		@Bean
-		public TomcatWebSocketContainerCustomizer tomcatCuztomiser() {
+		public TomcatWebSocketContainerCustomizer tomcatCustomizer() {
 			return new TomcatWebSocketContainerCustomizer();
 		}
 
@@ -200,9 +244,14 @@ public class WebSocketMessagingAutoConfigurationTests {
 	@Controller
 	static class MessagingController {
 
-		@SubscribeMapping("/data")
-		Data getData() {
+		@SubscribeMapping("/json")
+		Data json() {
 			return new Data(5, "baz");
+		}
+
+		@SubscribeMapping("/string")
+		String string() {
+			return "string data";
 		}
 
 	}

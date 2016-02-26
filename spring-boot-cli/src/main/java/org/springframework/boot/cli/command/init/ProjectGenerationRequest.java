@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.http.client.utils.URIBuilder;
+
 import org.springframework.util.StringUtils;
 
 /**
@@ -384,7 +385,7 @@ class ProjectGenerationRequest {
 			if (types.size() == 1) {
 				return types.values().iterator().next();
 			}
-			else if (types.size() == 0) {
+			else if (types.isEmpty()) {
 				throw new ReportableException("No type found with build '" + this.build
 						+ "' and format '" + this.format
 						+ "' check the service capabilities (--list)");

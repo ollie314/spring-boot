@@ -32,6 +32,7 @@ import javax.servlet.http.HttpServletResponseWrapper;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+
 import org.springframework.boot.context.embedded.AbstractConfigurableEmbeddedServletContainer;
 import org.springframework.boot.context.embedded.EmbeddedServletContainerCustomizer;
 import org.springframework.boot.context.embedded.ErrorPage;
@@ -60,7 +61,7 @@ import org.springframework.web.util.NestedServletException;
 public class ErrorPageFilter extends AbstractConfigurableEmbeddedServletContainer
 		implements Filter, NonEmbeddedServletContainerFactory {
 
-	private static Log logger = LogFactory.getLog(ErrorPageFilter.class);
+	private static final Log logger = LogFactory.getLog(ErrorPageFilter.class);
 
 	// From RequestDispatcher but not referenced to remain compatible with Servlet 2.5
 

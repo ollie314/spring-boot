@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 the original author or authors.
+ * Copyright 2012-2016 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,6 +29,7 @@ import org.gradle.api.artifacts.FileCollectionDependency;
 import org.gradle.api.artifacts.ModuleVersionIdentifier;
 import org.gradle.api.artifacts.ProjectDependency;
 import org.gradle.api.artifacts.ResolvedArtifact;
+
 import org.springframework.boot.gradle.SpringBootPluginExtension;
 import org.springframework.boot.loader.tools.Libraries;
 import org.springframework.boot.loader.tools.Library;
@@ -47,6 +48,8 @@ class ProjectLibraries implements Libraries {
 
 	private final SpringBootPluginExtension extension;
 
+	private final boolean excludeDevtools;
+
 	private String providedConfigurationName = "providedRuntime";
 
 	private String customConfigurationName = null;
@@ -55,10 +58,13 @@ class ProjectLibraries implements Libraries {
 	 * Create a new {@link ProjectLibraries} instance of the specified {@link Project}.
 	 * @param project the gradle project
 	 * @param extension the extension
+	 * @param excludeDevTools whether Spring Boot Devtools should be excluded
 	 */
-	ProjectLibraries(Project project, SpringBootPluginExtension extension) {
+	ProjectLibraries(Project project, SpringBootPluginExtension extension,
+			boolean excludeDevTools) {
 		this.project = project;
 		this.extension = extension;
+		this.excludeDevtools = excludeDevTools;
 	}
 
 	/**
@@ -164,7 +170,7 @@ class ProjectLibraries implements Libraries {
 	}
 
 	private boolean isExcluded(GradleLibrary library) {
-		if (this.extension.isExcludeDevtools() && isDevToolsJar(library)) {
+		if (this.excludeDevtools && isDevToolsJar(library)) {
 			return true;
 		}
 		return false;

@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 the original author or authors.
+ * Copyright 2012-2016 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,6 +36,7 @@ import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
 import org.apache.maven.shared.artifact.filter.collection.AbstractArtifactFeatureFilter;
 import org.apache.maven.shared.artifact.filter.collection.FilterArtifacts;
+
 import org.springframework.boot.loader.tools.FileUtils;
 import org.springframework.boot.loader.tools.MainClassFinder;
 
@@ -51,7 +52,7 @@ import org.springframework.boot.loader.tools.MainClassFinder;
  */
 public abstract class AbstractRunMojo extends AbstractDependencyFilterMojo {
 
-	private static final String SPRING_LOADED_AGENT_CLASSNAME = "org.springsource.loaded.agent.SpringLoadedAgent";
+	private static final String SPRING_LOADED_AGENT_CLASS_NAME = "org.springsource.loaded.agent.SpringLoadedAgent";
 
 	/**
 	 * The Maven project.
@@ -63,11 +64,13 @@ public abstract class AbstractRunMojo extends AbstractDependencyFilterMojo {
 	/**
 	 * Add maven resources to the classpath directly, this allows live in-place editing of
 	 * resources. Duplicate resources are removed from {@code target/classes} to prevent
-	 * them to appear twice if {@code ClassLoader.getResources()} is called.
+	 * them to appear twice if {@code ClassLoader.getResources()} is called. Please
+	 * consider adding {@code spring-boot-devtools} to your project instead as it provides
+	 * this feature and many more.
 	 * @since 1.0
 	 */
-	@Parameter(property = "run.addResources", defaultValue = "true")
-	private boolean addResources;
+	@Parameter(property = "run.addResources", defaultValue = "false")
+	private boolean addResources = false;
 
 	/**
 	 * Path to agent jar. NOTE: the use of agents means that processes will be started by
@@ -99,6 +102,15 @@ public abstract class AbstractRunMojo extends AbstractDependencyFilterMojo {
 	 */
 	@Parameter(property = "run.arguments")
 	private String[] arguments;
+
+	/**
+	 * The spring profiles to activate. Convenience shortcut of specifying the
+	 * 'spring.profiles.active' argument. On command line use commas to separate multiple
+	 * profiles.
+	 * @since 1.3
+	 */
+	@Parameter(property = "run.profiles")
+	private String[] profiles;
 
 	/**
 	 * The name of the main class. If not specified the first compiled class found that
@@ -140,6 +152,13 @@ public abstract class AbstractRunMojo extends AbstractDependencyFilterMojo {
 	private Boolean useTestClasspath;
 
 	/**
+	 * Skip the execution.
+	 * @since 1.3.2
+	 */
+	@Parameter(defaultValue = "false")
+	private boolean skip;
+
+	/**
 	 * Specify if the application process should be forked.
 	 * @return {@code true} if the application process should be forked
 	 */
@@ -158,6 +177,10 @@ public abstract class AbstractRunMojo extends AbstractDependencyFilterMojo {
 
 	@Override
 	public void execute() throws MojoExecutionException, MojoFailureException {
+		if (this.skip) {
+			getLog().debug("skipping run as per configuration.");
+			return;
+		}
 		final String startClassName = getStartClass();
 		run(startClassName);
 	}
@@ -165,7 +188,7 @@ public abstract class AbstractRunMojo extends AbstractDependencyFilterMojo {
 	private void findAgent() {
 		try {
 			if (this.agent == null || this.agent.length == 0) {
-				Class<?> loaded = Class.forName(SPRING_LOADED_AGENT_CLASSNAME);
+				Class<?> loaded = Class.forName(SPRING_LOADED_AGENT_CLASS_NAME);
 				if (loaded != null) {
 					if (this.noverify == null) {
 						this.noverify = true;
@@ -239,7 +262,9 @@ public abstract class AbstractRunMojo extends AbstractDependencyFilterMojo {
 	 * @return a {@link RunArguments} defining the application arguments
 	 */
 	protected RunArguments resolveApplicationArguments() {
-		return new RunArguments(this.arguments);
+		RunArguments runArguments = new RunArguments(this.arguments);
+		addActiveProfileArgument(runArguments);
+		return runArguments;
 	}
 
 	private void addArgs(List<String> args) {
@@ -271,6 +296,20 @@ public abstract class AbstractRunMojo extends AbstractDependencyFilterMojo {
 		}
 		if (this.noverify) {
 			args.add("-noverify");
+		}
+	}
+
+	private void addActiveProfileArgument(RunArguments arguments) {
+		if (this.profiles.length > 0) {
+			StringBuilder arg = new StringBuilder("--spring.profiles.active=");
+			for (int i = 0; i < this.profiles.length; i++) {
+				arg.append(this.profiles[i]);
+				if (i < this.profiles.length - 1) {
+					arg.append(",");
+				}
+			}
+			arguments.getArgs().addFirst(arg.toString());
+			logArguments("Active profile(s): ", this.profiles);
 		}
 	}
 
@@ -406,7 +445,7 @@ public abstract class AbstractRunMojo extends AbstractDependencyFilterMojo {
 		public synchronized void rethrowUncaughtException()
 				throws MojoExecutionException {
 			if (this.exception != null) {
-				throw new MojoExecutionException("An exception occured while running. "
+				throw new MojoExecutionException("An exception occurred while running. "
 						+ this.exception.getMessage(), this.exception);
 			}
 		}

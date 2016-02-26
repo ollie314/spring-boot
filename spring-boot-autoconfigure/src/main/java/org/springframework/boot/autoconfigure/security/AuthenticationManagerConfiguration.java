@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 the original author or authors.
+ * Copyright 2012-2016 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -51,11 +52,13 @@ import org.springframework.util.ReflectionUtils;
 
 /**
  * Configuration for a Spring Security in-memory {@link AuthenticationManager}. Can be
- * disabled by providing a bean of type AuthenticationManager. The value provided by this
- * configuration will become the "global" authentication manager (from Spring Security),
- * or the parent of the global instance. Thus it acts as a fallback when no others are
- * provided, is used by method security if enabled, and as a parent authentication manager
- * for "local" authentication managers in individual filter chains.
+ * disabled by providing a bean of type AuthenticationManager, or by autowiring an
+ * {@link AuthenticationManagerBuilder} into a method in one of your configuration
+ * classes. The value provided by this configuration will become the "global"
+ * authentication manager (from Spring Security), or the parent of the global instance.
+ * Thus it acts as a fallback when no others are provided, is used by method security if
+ * enabled, and as a parent authentication manager for "local" authentication managers in
+ * individual filter chains.
  *
  * @author Dave Syer
  * @author Rob Winch
@@ -66,7 +69,7 @@ import org.springframework.util.ReflectionUtils;
 @Order(0)
 public class AuthenticationManagerConfiguration {
 
-	private static Log logger = LogFactory
+	private static final Log logger = LogFactory
 			.getLog(AuthenticationManagerConfiguration.class);
 
 	@Bean
@@ -164,8 +167,8 @@ public class AuthenticationManagerConfiguration {
 			}
 			User user = this.securityProperties.getUser();
 			if (user.isDefaultPassword()) {
-				logger.info("\n\nUsing default security password: " + user.getPassword()
-						+ "\n");
+				logger.info(String.format("%n%nUsing default security password: %s%n",
+						user.getPassword()));
 			}
 			Set<String> roles = new LinkedHashSet<String>(user.getRole());
 			withUser(user.getName()).password(user.getPassword())

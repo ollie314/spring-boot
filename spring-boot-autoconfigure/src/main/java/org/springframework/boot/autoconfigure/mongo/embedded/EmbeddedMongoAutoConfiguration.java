@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 the original author or authors.
+ * Copyright 2012-2016 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,34 +17,15 @@
 package org.springframework.boot.autoconfigure.mongo.embedded;
 
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.AutoConfigureBefore;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.boot.autoconfigure.data.mongo.MongoClientDependsOnBeanFactoryPostProcessor;
-import org.springframework.boot.autoconfigure.mongo.MongoAutoConfiguration;
-import org.springframework.boot.autoconfigure.mongo.MongoProperties;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.ConfigurableApplicationContext;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.core.env.MapPropertySource;
-import org.springframework.core.env.MutablePropertySources;
-import org.springframework.core.env.PropertySource;
-import org.springframework.util.Assert;
-
 import com.mongodb.Mongo;
 import com.mongodb.MongoClient;
-
 import de.flapdoodle.embed.mongo.Command;
 import de.flapdoodle.embed.mongo.MongodExecutable;
 import de.flapdoodle.embed.mongo.MongodStarter;
@@ -63,6 +44,26 @@ import de.flapdoodle.embed.process.io.Slf4jLevel;
 import de.flapdoodle.embed.process.io.progress.Slf4jProgressListener;
 import de.flapdoodle.embed.process.runtime.Network;
 import de.flapdoodle.embed.process.store.ArtifactStoreBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.AutoConfigureBefore;
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.data.mongo.MongoClientDependsOnBeanFactoryPostProcessor;
+import org.springframework.boot.autoconfigure.mongo.MongoAutoConfiguration;
+import org.springframework.boot.autoconfigure.mongo.MongoProperties;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.MapPropertySource;
+import org.springframework.core.env.MutablePropertySources;
+import org.springframework.core.env.PropertySource;
+import org.springframework.util.Assert;
 
 /**
  * {@link EnableAutoConfiguration Auto-configuration} for Embedded Mongo.
@@ -76,6 +77,11 @@ import de.flapdoodle.embed.process.store.ArtifactStoreBuilder;
 @AutoConfigureBefore(MongoAutoConfiguration.class)
 @ConditionalOnClass({ Mongo.class, MongodStarter.class })
 public class EmbeddedMongoAutoConfiguration {
+
+	private static final byte[] IP4_LOOPBACK_ADDRESS = { 127, 0, 0, 1 };
+
+	private static final byte[] IP6_LOOPBACK_ADDRESS = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+			0, 0, 0, 0, 1 };
 
 	@Autowired
 	private MongoProperties properties;
@@ -107,7 +113,7 @@ public class EmbeddedMongoAutoConfiguration {
 	private ArtifactStoreBuilder getArtifactStore(Logger logger) {
 		return new ExtractedArtifactStoreBuilder().defaults(Command.MongoD)
 				.download(new DownloadConfigBuilder().defaultsForCommand(Command.MongoD)
-						.progressListener(new Slf4jProgressListener(logger)));
+						.progressListener(new Slf4jProgressListener(logger)).build());
 	}
 
 	@Bean(initMethod = "start", destroyMethod = "stop")
@@ -137,7 +143,12 @@ public class EmbeddedMongoAutoConfiguration {
 		MongodConfigBuilder builder = new MongodConfigBuilder()
 				.version(featureAwareVersion);
 		if (getPort() > 0) {
-			builder.net(new Net(getPort(), Network.localhostIsIPv6()));
+			builder.net(new Net(getHost().getHostAddress(), getPort(),
+					Network.localhostIsIPv6()));
+		}
+		else {
+			builder.net(new Net(getHost().getHostAddress(),
+					Network.getFreeServerPort(getHost()), Network.localhostIsIPv6()));
 		}
 		return builder.build();
 	}
@@ -147,6 +158,14 @@ public class EmbeddedMongoAutoConfiguration {
 			return MongoProperties.DEFAULT_PORT;
 		}
 		return this.properties.getPort();
+	}
+
+	private InetAddress getHost() throws UnknownHostException {
+		if (this.properties.getHost() == null) {
+			return InetAddress.getByAddress(Network.localhostIsIPv6()
+					? IP6_LOOPBACK_ADDRESS : IP4_LOOPBACK_ADDRESS);
+		}
+		return InetAddress.getByName(this.properties.getHost());
 	}
 
 	private void publishPortInfo(int port) {

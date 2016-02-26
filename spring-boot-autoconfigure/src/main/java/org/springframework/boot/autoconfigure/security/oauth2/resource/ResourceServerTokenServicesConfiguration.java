@@ -24,6 +24,7 @@ import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionOutcome;
@@ -113,8 +114,7 @@ public class ResourceServerTokenServicesConfiguration {
 				this.details = DEFAULT_RESOURCE_DETAILS;
 			}
 			OAuth2RestTemplate template = getTemplate();
-			template.setInterceptors(Arrays.<ClientHttpRequestInterceptor>asList(
-					new AcceptJsonRequestInterceptor()));
+			template.getInterceptors().add(new AcceptJsonRequestInterceptor());
 			AuthorizationCodeAccessTokenProvider accessTokenProvider = new AuthorizationCodeAccessTokenProvider();
 			accessTokenProvider.setTokenRequestEnhancer(new AcceptJsonRequestEnhancer());
 			template.setAccessTokenProvider(accessTokenProvider);

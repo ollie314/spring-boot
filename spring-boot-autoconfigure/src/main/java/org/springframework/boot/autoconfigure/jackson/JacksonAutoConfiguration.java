@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 the original author or authors.
+ * Copyright 2012-2016 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,11 +23,21 @@ import java.util.Collection;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.TimeZone;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.databind.Module;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.PropertyNamingStrategy;
+import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.fasterxml.jackson.datatype.joda.cfg.JacksonJodaDateFormat;
+import com.fasterxml.jackson.datatype.joda.ser.DateTimeSerializer;
+import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
+
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.BeanFactoryUtils;
 import org.springframework.beans.factory.ListableBeanFactory;
@@ -46,15 +56,6 @@ import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 import org.springframework.util.ReflectionUtils;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.databind.Module;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.PropertyNamingStrategy;
-import com.fasterxml.jackson.databind.module.SimpleModule;
-import com.fasterxml.jackson.datatype.joda.cfg.JacksonJodaDateFormat;
-import com.fasterxml.jackson.datatype.joda.ser.DateTimeSerializer;
-import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
-
 /**
  * Auto configuration for Jackson. The following auto-configuration will get applied:
  * <ul>
@@ -68,7 +69,7 @@ import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
  * @author Andy Wilkinson
  * @author Marcel Overdijk
  * @author Sebastien Deleuze
- * @author Johannes Stelzer
+ * @author Johannes Edmeier
  * @since 1.1.0
  */
 @Configuration
@@ -93,7 +94,8 @@ public class JacksonAutoConfiguration {
 			DateTimeSerializer.class, JacksonJodaDateFormat.class })
 	static class JodaDateTimeJacksonConfiguration {
 
-		private final Log log = LogFactory.getLog(JodaDateTimeJacksonConfiguration.class);
+		private static final Log logger = LogFactory
+				.getLog(JodaDateTimeJacksonConfiguration.class);
 
 		@Autowired
 		private JacksonProperties jacksonProperties;
@@ -122,8 +124,8 @@ public class JacksonAutoConfiguration {
 							.withZoneUTC());
 				}
 				catch (IllegalArgumentException ex) {
-					if (this.log.isWarnEnabled()) {
-						this.log.warn("spring.jackson.date-format could not be used to "
+					if (logger.isWarnEnabled()) {
+						logger.warn("spring.jackson.date-format could not be used to "
 								+ "configure formatting of Joda's DateTime. You may want "
 								+ "to configure spring.jackson.joda-date-time-format as "
 								+ "well.");
@@ -142,8 +144,8 @@ public class JacksonAutoConfiguration {
 
 		@Bean
 		@ConditionalOnMissingBean(ParameterNamesModule.class)
-		public ParameterNamesModule parametersNameModule() {
-			return new ParameterNamesModule(JsonCreator.Mode.PROPERTIES);
+		public ParameterNamesModule parameterNamesModule() {
+			return new ParameterNamesModule(JsonCreator.Mode.DEFAULT);
 		}
 
 	}
@@ -206,7 +208,16 @@ public class JacksonAutoConfiguration {
 							(DateFormat) BeanUtils.instantiateClass(dateFormatClass));
 				}
 				catch (ClassNotFoundException ex) {
-					builder.dateFormat(new SimpleDateFormat(dateFormat));
+					SimpleDateFormat simpleDateFormat = new SimpleDateFormat(dateFormat);
+					// Since Jackson 2.6.3 we always need to set a TimeZone (see gh-4170)
+					// If none in our properties fallback to the Jackson's default
+					TimeZone timeZone = this.jacksonProperties.getTimeZone();
+					if (timeZone == null) {
+						timeZone = new ObjectMapper().getSerializationConfig()
+								.getTimeZone();
+					}
+					simpleDateFormat.setTimeZone(timeZone);
+					builder.dateFormat(simpleDateFormat);
 				}
 			}
 		}

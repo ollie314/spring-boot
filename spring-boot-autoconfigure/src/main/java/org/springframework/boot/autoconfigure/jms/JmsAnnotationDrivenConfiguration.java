@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 the original author or authors.
+ * Copyright 2012-2016 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -52,30 +52,22 @@ class JmsAnnotationDrivenConfiguration {
 	private JmsProperties properties;
 
 	@Bean
+	@ConditionalOnMissingBean
+	public DefaultJmsListenerContainerFactoryConfigurer jmsListenerContainerFactoryConfigurer() {
+		DefaultJmsListenerContainerFactoryConfigurer configurer = new DefaultJmsListenerContainerFactoryConfigurer();
+		configurer.setDestinationResolver(this.destinationResolver);
+		configurer.setTransactionManager(this.transactionManager);
+		configurer.setJmsProperties(this.properties);
+		return configurer;
+	}
+
+	@Bean
 	@ConditionalOnMissingBean(name = "jmsListenerContainerFactory")
 	public DefaultJmsListenerContainerFactory jmsListenerContainerFactory(
+			DefaultJmsListenerContainerFactoryConfigurer configurer,
 			ConnectionFactory connectionFactory) {
 		DefaultJmsListenerContainerFactory factory = new DefaultJmsListenerContainerFactory();
-		factory.setConnectionFactory(connectionFactory);
-		factory.setPubSubDomain(this.properties.isPubSubDomain());
-		if (this.transactionManager != null) {
-			factory.setTransactionManager(this.transactionManager);
-		}
-		else {
-			factory.setSessionTransacted(true);
-		}
-		if (this.destinationResolver != null) {
-			factory.setDestinationResolver(this.destinationResolver);
-		}
-		JmsProperties.Listener listener = this.properties.getListener();
-		factory.setAutoStartup(listener.isAutoStartup());
-		if (listener.getAcknowledgeMode() != null) {
-			factory.setSessionAcknowledgeMode(listener.getAcknowledgeMode().getMode());
-		}
-		String concurrency = listener.formatConcurrency();
-		if (concurrency != null) {
-			factory.setConcurrency(concurrency);
-		}
+		configurer.configure(factory, connectionFactory);
 		return factory;
 	}
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 the original author or authors.
+ * Copyright 2012-2016 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,11 +23,19 @@ import java.util.Arrays;
 import javax.cache.Caching;
 import javax.cache.configuration.MutableConfiguration;
 
+import com.google.common.cache.CacheBuilder;
+import com.hazelcast.cache.HazelcastCachingProvider;
+import com.hazelcast.config.Config;
+import com.hazelcast.config.XmlConfigBuilder;
+import com.hazelcast.core.Hazelcast;
+import com.hazelcast.core.HazelcastInstance;
+import com.hazelcast.spring.cache.HazelcastCacheManager;
 import org.infinispan.manager.DefaultCacheManager;
 import org.infinispan.manager.EmbeddedCacheManager;
 import org.infinispan.spring.provider.SpringEmbeddedCacheManager;
 import org.junit.After;
 import org.junit.Test;
+
 import org.springframework.boot.actuate.cache.CacheStatistics;
 import org.springframework.boot.actuate.cache.CacheStatisticsProvider;
 import org.springframework.cache.Cache;
@@ -45,16 +53,8 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 import org.springframework.util.Assert;
 
-import com.google.common.cache.CacheBuilder;
-import com.hazelcast.cache.HazelcastCachingProvider;
-import com.hazelcast.config.Config;
-import com.hazelcast.config.XmlConfigBuilder;
-import com.hazelcast.core.Hazelcast;
-import com.hazelcast.core.HazelcastInstance;
-import com.hazelcast.spring.cache.HazelcastCacheManager;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.offset;
 
 /**
  * Tests for {@link CacheStatisticsAutoConfiguration}.
@@ -160,8 +160,8 @@ public class CacheStatisticsAutoConfigurationTests {
 
 	private void assertCoreStatistics(CacheStatistics metrics, Long size, Double hitRatio,
 			Double missRatio) {
-		assertNotNull("Cache metrics must not be null", metrics);
-		assertEquals("Wrong size for metrics " + metrics, size, metrics.getSize());
+		assertThat(metrics).isNotNull();
+		assertThat(metrics.getSize()).isEqualTo(size);
 		checkRatio("Wrong hit ratio for metrics " + metrics, hitRatio,
 				metrics.getHitRatio());
 		checkRatio("Wrong miss ratio for metrics " + metrics, missRatio,
@@ -170,10 +170,10 @@ public class CacheStatisticsAutoConfigurationTests {
 
 	private void checkRatio(String message, Double expected, Double actual) {
 		if (expected == null || actual == null) {
-			assertEquals(message, expected, actual);
+			assertThat(actual).as(message).isEqualTo(expected);
 		}
 		else {
-			assertEquals(message, expected, actual, 0.01D);
+			assertThat(actual).as(message).isEqualTo(expected, offset(0.01D));
 		}
 	}
 

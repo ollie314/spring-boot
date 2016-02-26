@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 the original author or authors.
+ * Copyright 2012-2016 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,14 +22,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.springframework.beans.BeansException;
-import org.springframework.boot.context.properties.ConfigurationBeanFactoryMetaData;
-import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.ApplicationContextAware;
-import org.springframework.util.ClassUtils;
-import org.springframework.util.StringUtils;
-
 import com.fasterxml.jackson.databind.BeanDescription;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationConfig;
@@ -45,6 +37,14 @@ import com.fasterxml.jackson.databind.ser.SerializerFactory;
 import com.fasterxml.jackson.databind.ser.impl.SimpleBeanPropertyFilter;
 import com.fasterxml.jackson.databind.ser.impl.SimpleFilterProvider;
 
+import org.springframework.beans.BeansException;
+import org.springframework.boot.context.properties.ConfigurationBeanFactoryMetaData;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
+import org.springframework.util.ClassUtils;
+import org.springframework.util.StringUtils;
+
 /**
  * {@link Endpoint} to expose application properties from {@link ConfigurationProperties}
  * annotated beans.
@@ -58,7 +58,7 @@ import com.fasterxml.jackson.databind.ser.impl.SimpleFilterProvider;
  * @author Christian Dupuis
  * @author Dave Syer
  */
-@ConfigurationProperties(prefix = "endpoints.configprops", ignoreUnknownFields = false)
+@ConfigurationProperties(prefix = "endpoints.configprops")
 public class ConfigurationPropertiesReportEndpoint
 		extends AbstractEndpoint<Map<String, Object>> implements ApplicationContextAware {
 
@@ -111,7 +111,7 @@ public class ConfigurationPropertiesReportEndpoint
 			Map<String, Object> root = new HashMap<String, Object>();
 			String prefix = extractPrefix(context, beanFactoryMetaData, beanName, bean);
 			root.put("prefix", prefix);
-			root.put("properties", sanitize(safeSerialize(mapper, bean, prefix)));
+			root.put("properties", sanitize(prefix, safeSerialize(mapper, bean, prefix)));
 			result.put(beanName, root);
 		}
 		if (context.getParent() != null) {
@@ -227,19 +227,23 @@ public class ConfigurationPropertiesReportEndpoint
 	/**
 	 * Sanitize all unwanted configuration properties to avoid leaking of sensitive
 	 * information.
+	 * @param prefix the property prefix
 	 * @param map the source map
 	 * @return the sanitized map
 	 */
 	@SuppressWarnings("unchecked")
-	private Map<String, Object> sanitize(Map<String, Object> map) {
+	private Map<String, Object> sanitize(String prefix, Map<String, Object> map) {
 		for (Map.Entry<String, Object> entry : map.entrySet()) {
 			String key = entry.getKey();
+			String qualifiedKey = (prefix.length() == 0 ? prefix : prefix + ".") + key;
 			Object value = entry.getValue();
 			if (value instanceof Map) {
-				map.put(key, sanitize((Map<String, Object>) value));
+				map.put(key, sanitize(qualifiedKey, (Map<String, Object>) value));
 			}
 			else {
-				map.put(key, this.sanitizer.sanitize(key, value));
+				value = this.sanitizer.sanitize(key, value);
+				value = this.sanitizer.sanitize(qualifiedKey, value);
+				map.put(key, value);
 			}
 		}
 		return map;

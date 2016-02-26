@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 the original author or authors.
+ * Copyright 2012-2016 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,14 +29,14 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+
 import org.springframework.boot.devtools.filewatch.ChangedFile;
 import org.springframework.boot.devtools.filewatch.ChangedFiles;
 import org.springframework.boot.devtools.filewatch.FileSystemWatcher;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -115,8 +115,8 @@ public class ClassPathFileChangeListenerTests {
 		verify(this.eventPublisher).publishEvent(this.eventCaptor.capture());
 		ClassPathChangedEvent actualEvent = (ClassPathChangedEvent) this.eventCaptor
 				.getValue();
-		assertThat(actualEvent.getChangeSet(), equalTo(changeSet));
-		assertThat(actualEvent.isRestartRequired(), equalTo(restart));
+		assertThat(actualEvent.getChangeSet()).isEqualTo(changeSet);
+		assertThat(actualEvent.isRestartRequired()).isEqualTo(restart);
 	}
 
 }

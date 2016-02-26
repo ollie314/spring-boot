@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2014 the original author or authors.
+ * Copyright 2012-2016 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,7 +26,10 @@ import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.Set;
 
+import jline.console.ConsoleReader;
+import jline.console.completer.CandidateListCompletionHandler;
 import org.fusesource.jansi.AnsiRenderer.Code;
+
 import org.springframework.boot.cli.command.Command;
 import org.springframework.boot.cli.command.CommandFactory;
 import org.springframework.boot.cli.command.CommandRunner;
@@ -34,9 +37,6 @@ import org.springframework.boot.cli.command.core.HelpCommand;
 import org.springframework.boot.cli.command.core.VersionCommand;
 import org.springframework.boot.loader.tools.SignalUtils;
 import org.springframework.util.StringUtils;
-
-import jline.console.ConsoleReader;
-import jline.console.completer.CandidateListCompletionHandler;
 
 /**
  * A shell for Spring Boot. Drops the user into an event loop (REPL) where command line
@@ -175,13 +175,13 @@ public class Shell {
 	}
 
 	/**
-	 * Final handle an interrup signal (CTRL-C).
+	 * Final handle an interrupt signal (CTRL-C).
 	 */
 	protected void handleSigInt() {
 		if (this.commandRunner.handleSigInt()) {
 			return;
 		}
-		System.out.println("\nThanks for using Spring Boot");
+		System.out.println(String.format("%nThanks for using Spring Boot"));
 		System.exit(1);
 	}
 

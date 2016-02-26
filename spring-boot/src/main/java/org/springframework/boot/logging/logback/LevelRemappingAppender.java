@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2014 the original author or authors.
+ * Copyright 2012-2016 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,10 +20,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.slf4j.Marker;
-import org.springframework.util.Assert;
-import org.springframework.util.StringUtils;
-
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.LoggerContext;
@@ -32,6 +28,10 @@ import ch.qos.logback.classic.spi.IThrowableProxy;
 import ch.qos.logback.classic.spi.LoggerContextVO;
 import ch.qos.logback.core.Appender;
 import ch.qos.logback.core.AppenderBase;
+import org.slf4j.Marker;
+
+import org.springframework.util.Assert;
+import org.springframework.util.StringUtils;
 
 /**
  * {@link Appender} that can remap {@link ILoggingEvent} {@link Level}s as they are
@@ -195,7 +195,7 @@ public class LevelRemappingAppender extends AppenderBase<ILoggingEvent> {
 		@Override
 		@Deprecated
 		public Map<String, String> getMdc() {
-			return this.event.getMdc();
+			return this.event.getMDCPropertyMap();
 		}
 
 		@Override

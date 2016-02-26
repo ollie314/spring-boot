@@ -24,6 +24,7 @@ import javax.sql.DataSource;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -77,7 +78,7 @@ public class HibernateJpaAutoConfiguration extends JpaBaseConfiguration {
 	 * {@code WebSphereExtendedJtaPlatform} implementations for various Hibernate
 	 * versions.
 	 */
-	private static final String[] WEBSHERE_JTA_PLATFORM_CLASSES = {
+	private static final String[] WEBSPHERE_JTA_PLATFORM_CLASSES = {
 			"org.hibernate.engine.transaction.jta.platform.internal.WebSphereExtendedJtaPlatform",
 			"org.hibernate.service.jta.platform.internal.WebSphereExtendedJtaPlatform", };
 
@@ -113,7 +114,7 @@ public class HibernateJpaAutoConfiguration extends JpaBaseConfiguration {
 		if (jtaTransactionManager != null) {
 			if (runningOnWebSphere()) {
 				// We can never use SpringJtaPlatform on WebSphere as
-				// WebSphereUowTransactionManger has a null TransactionManager
+				// WebSphereUowTransactionManager has a null TransactionManager
 				// which will cause Hibernate to NPE
 				configureWebSphereTransactionPlatform(vendorProperties);
 			}
@@ -138,7 +139,7 @@ public class HibernateJpaAutoConfiguration extends JpaBaseConfiguration {
 	}
 
 	private Object getWebSphereJtaPlatformManager() {
-		return getJtaPlatformManager(WEBSHERE_JTA_PLATFORM_CLASSES);
+		return getJtaPlatformManager(WEBSPHERE_JTA_PLATFORM_CLASSES);
 	}
 
 	private void configureSpringJtaPlatform(Map<String, Object> vendorProperties,

@@ -24,6 +24,7 @@ import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+
 import org.springframework.core.env.MutablePropertySources;
 import org.springframework.core.env.PropertySource;
 import org.springframework.core.io.Resource;
@@ -39,7 +40,7 @@ import org.springframework.util.StringUtils;
  */
 public class PropertySourcesLoader {
 
-	private static Log logger = LogFactory.getLog(PropertySourcesLoader.class);
+	private static final Log logger = LogFactory.getLog(PropertySourcesLoader.class);
 
 	private final MutablePropertySources propertySources;
 

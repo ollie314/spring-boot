@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 the original author or authors.
+ * Copyright 2012-2016 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,6 +33,7 @@ import javax.servlet.http.HttpSession;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+
 import org.springframework.boot.actuate.trace.TraceProperties.Include;
 import org.springframework.boot.autoconfigure.web.ErrorAttributes;
 import org.springframework.core.Ordered;
@@ -44,10 +45,11 @@ import org.springframework.web.filter.OncePerRequestFilter;
  *
  * @author Dave Syer
  * @author Wallace Wadge
+ * @author Andy Wilkinson
  */
 public class WebRequestTraceFilter extends OncePerRequestFilter implements Ordered {
 
-	private final Log logger = LogFactory.getLog(WebRequestTraceFilter.class);
+	private static final Log logger = LogFactory.getLog(WebRequestTraceFilter.class);
 
 	private boolean dumpRequests = false;
 
@@ -60,17 +62,6 @@ public class WebRequestTraceFilter extends OncePerRequestFilter implements Order
 	private ErrorAttributes errorAttributes;
 
 	private final TraceProperties properties;
-
-	/**
-	 * Create a new {@link WebRequestTraceFilter} instance.
-	 * @param traceRepository the trace repository.
-	 * @deprecated since 1.3.0 in favor of
-	 * {@link #WebRequestTraceFilter(TraceRepository, TraceProperties)}
-	 */
-	@Deprecated
-	public WebRequestTraceFilter(TraceRepository traceRepository) {
-		this(traceRepository, new TraceProperties());
-	}
 
 	/**
 	 * Create a new {@link WebRequestTraceFilter} instance.
@@ -134,7 +125,9 @@ public class WebRequestTraceFilter extends OncePerRequestFilter implements Order
 		add(trace, Include.CONTEXT_PATH, "contextPath", request.getContextPath());
 		add(trace, Include.USER_PRINCIPAL, "userPrincipal",
 				(userPrincipal == null ? null : userPrincipal.getName()));
-		add(trace, Include.PARAMETERS, "parameters", request.getParameterMap());
+		if (isIncluded(Include.PARAMETERS)) {
+			trace.put("parameters", request.getParameterMap());
+		}
 		add(trace, Include.QUERY_STRING, "query", request.getQueryString());
 		add(trace, Include.AUTH_TYPE, "authType", request.getAuthType());
 		add(trace, Include.REMOTE_ADDRESS, "remoteAddress", request.getRemoteAddr());
@@ -169,8 +162,10 @@ public class WebRequestTraceFilter extends OncePerRequestFilter implements Order
 
 	@SuppressWarnings("unchecked")
 	protected void enhanceTrace(Map<String, Object> trace, HttpServletResponse response) {
-		Map<String, Object> headers = (Map<String, Object>) trace.get("headers");
-		headers.put("response", getResponseHeaders(response));
+		if (isIncluded(Include.RESPONSE_HEADERS)) {
+			Map<String, Object> headers = (Map<String, Object>) trace.get("headers");
+			headers.put("response", getResponseHeaders(response));
+		}
 	}
 
 	private Map<String, String> getResponseHeaders(HttpServletResponse response) {
@@ -184,11 +179,11 @@ public class WebRequestTraceFilter extends OncePerRequestFilter implements Order
 	}
 
 	private void logTrace(HttpServletRequest request, Map<String, Object> trace) {
-		if (this.logger.isTraceEnabled()) {
-			this.logger.trace("Processing request " + request.getMethod() + " "
+		if (logger.isTraceEnabled()) {
+			logger.trace("Processing request " + request.getMethod() + " "
 					+ request.getRequestURI());
 			if (this.dumpRequests) {
-				this.logger.trace("Headers: " + trace.get("headers"));
+				logger.trace("Headers: " + trace.get("headers"));
 			}
 		}
 	}

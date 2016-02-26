@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 the original author or authors.
+ * Copyright 2012-2016 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -62,8 +62,19 @@ public class StopMojo extends AbstractMojo {
 	@Parameter
 	private int jmxPort = 9001;
 
+	/**
+	 * Skip the execution.
+	 * @since 1.3.2
+	 */
+	@Parameter(defaultValue = "false")
+	private boolean skip;
+
 	@Override
 	public void execute() throws MojoExecutionException, MojoFailureException {
+		if (this.skip) {
+			getLog().debug("skipping stop as per configuration.");
+			return;
+		}
 		getLog().info("Stopping application...");
 		try {
 			if (Boolean.TRUE.equals(this.fork)) {

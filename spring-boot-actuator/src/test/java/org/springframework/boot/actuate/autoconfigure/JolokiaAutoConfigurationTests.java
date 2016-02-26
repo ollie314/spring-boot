@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2015 the original author or authors.
+ * Copyright 2012-2016 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ import java.util.Collection;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Test;
+
 import org.springframework.boot.actuate.endpoint.mvc.EndpointHandlerMapping;
 import org.springframework.boot.actuate.endpoint.mvc.JolokiaMvcEndpoint;
 import org.springframework.boot.actuate.endpoint.mvc.MvcEndpoint;
@@ -40,7 +41,7 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import static org.junit.Assert.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Tests for {@link JolokiaAutoConfiguration}.
@@ -73,8 +74,7 @@ public class JolokiaAutoConfigurationTests {
 				HttpMessageConvertersAutoConfiguration.class,
 				JolokiaAutoConfiguration.class);
 		this.context.refresh();
-		assertEquals(1,
-				this.context.getBeanNamesForType(JolokiaMvcEndpoint.class).length);
+		assertThat(this.context.getBeanNamesForType(JolokiaMvcEndpoint.class)).hasSize(1);
 	}
 
 	@Test
@@ -88,8 +88,7 @@ public class JolokiaAutoConfigurationTests {
 				HttpMessageConvertersAutoConfiguration.class,
 				JolokiaAutoConfiguration.class);
 		this.context.refresh();
-		assertEquals(1,
-				this.context.getBeanNamesForType(JolokiaMvcEndpoint.class).length);
+		assertThat(this.context.getBeanNamesForType(JolokiaMvcEndpoint.class)).hasSize(1);
 		MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(this.context).build();
 		mockMvc.perform(MockMvcRequestBuilders.get("/foo/bar"))
 				.andExpect(MockMvcResultMatchers.content()
@@ -121,8 +120,7 @@ public class JolokiaAutoConfigurationTests {
 				HttpMessageConvertersAutoConfiguration.class,
 				JolokiaAutoConfiguration.class);
 		this.context.refresh();
-		assertEquals(0,
-				this.context.getBeanNamesForType(JolokiaMvcEndpoint.class).length);
+		assertThat(this.context.getBeanNamesForType(JolokiaMvcEndpoint.class)).isEmpty();
 	}
 
 	private void assertEndpointEnabled(String... pairs) {
@@ -134,8 +132,7 @@ public class JolokiaAutoConfigurationTests {
 				HttpMessageConvertersAutoConfiguration.class,
 				JolokiaAutoConfiguration.class);
 		this.context.refresh();
-		assertEquals(1,
-				this.context.getBeanNamesForType(JolokiaMvcEndpoint.class).length);
+		assertThat(this.context.getBeanNamesForType(JolokiaMvcEndpoint.class)).hasSize(1);
 	}
 
 	@Configuration

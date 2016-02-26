@@ -26,6 +26,7 @@ import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+
 import org.springframework.beans.factory.BeanDefinitionStoreException;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.BeanFactoryUtils;
@@ -62,7 +63,7 @@ import org.springframework.util.StringUtils;
  */
 abstract class BeanTypeRegistry {
 
-	static Log logger = LogFactory.getLog(BeanTypeRegistry.class);
+	private static final Log logger = LogFactory.getLog(BeanTypeRegistry.class);
 
 	static final String FACTORY_BEAN_OBJECT_TYPE = "factoryBeanObjectType";
 

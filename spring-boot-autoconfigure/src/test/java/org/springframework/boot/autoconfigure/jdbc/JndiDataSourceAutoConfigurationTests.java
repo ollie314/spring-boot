@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 the original author or authors.
+ * Copyright 2012-2016 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,6 +26,7 @@ import org.apache.commons.dbcp2.BasicDataSource;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+
 import org.springframework.beans.DirectFieldAccessor;
 import org.springframework.boot.autoconfigure.jndi.JndiPropertiesHidingClassLoader;
 import org.springframework.boot.autoconfigure.jndi.TestableInitialContextFactory;
@@ -34,10 +35,7 @@ import org.springframework.context.annotation.AnnotationConfigApplicationContext
 import org.springframework.context.annotation.Bean;
 import org.springframework.jmx.export.MBeanExporter;
 
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.hasSize;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Tests for {@link JndiDataSourceAutoConfiguration}
@@ -94,7 +92,7 @@ public class JndiDataSourceAutoConfigurationTests {
 		this.context.register(JndiDataSourceAutoConfiguration.class);
 		this.context.refresh();
 
-		assertEquals(dataSource, this.context.getBean(DataSource.class));
+		assertThat(this.context.getBean(DataSource.class)).isEqualTo(dataSource);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -111,11 +109,11 @@ public class JndiDataSourceAutoConfigurationTests {
 				MBeanExporterConfiguration.class);
 		this.context.refresh();
 
-		assertEquals(dataSource, this.context.getBean(DataSource.class));
+		assertThat(this.context.getBean(DataSource.class)).isEqualTo(dataSource);
 		MBeanExporter exporter = this.context.getBean(MBeanExporter.class);
 		Set<String> excludedBeans = (Set<String>) new DirectFieldAccessor(exporter)
 				.getPropertyValue("excludedBeans");
-		assertThat(excludedBeans, contains("dataSource"));
+		assertThat(excludedBeans).containsExactly("dataSource");
 	}
 
 	@SuppressWarnings("unchecked")
@@ -132,11 +130,11 @@ public class JndiDataSourceAutoConfigurationTests {
 				MBeanExporterConfiguration.class);
 		this.context.refresh();
 
-		assertEquals(dataSource, this.context.getBean(DataSource.class));
+		assertThat(this.context.getBean(DataSource.class)).isEqualTo(dataSource);
 		MBeanExporter exporter = this.context.getBean(MBeanExporter.class);
 		Set<String> excludedBeans = (Set<String>) new DirectFieldAccessor(exporter)
 				.getPropertyValue("excludedBeans");
-		assertThat(excludedBeans, hasSize(0));
+		assertThat(excludedBeans).isEmpty();
 	}
 
 	private void configureJndi(String name, DataSource dataSource)

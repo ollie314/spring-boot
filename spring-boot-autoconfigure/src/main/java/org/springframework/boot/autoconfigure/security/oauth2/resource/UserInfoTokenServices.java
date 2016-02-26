@@ -22,6 +22,7 @@ import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
@@ -122,9 +123,14 @@ public class UserInfoTokenServices implements ResourceServerTokenServices {
 				resource.setClientId(this.clientId);
 				restTemplate = new OAuth2RestTemplate(resource);
 			}
-			DefaultOAuth2AccessToken token = new DefaultOAuth2AccessToken(accessToken);
-			token.setTokenType(this.tokenType);
-			restTemplate.getOAuth2ClientContext().setAccessToken(token);
+			OAuth2AccessToken existingToken = restTemplate.getOAuth2ClientContext()
+					.getAccessToken();
+			if (existingToken == null || !accessToken.equals(existingToken.getValue())) {
+				DefaultOAuth2AccessToken token = new DefaultOAuth2AccessToken(
+						accessToken);
+				token.setTokenType(this.tokenType);
+				restTemplate.getOAuth2ClientContext().setAccessToken(token);
+			}
 			return restTemplate.getForEntity(path, Map.class).getBody();
 		}
 		catch (Exception ex) {
@@ -134,4 +140,5 @@ public class UserInfoTokenServices implements ResourceServerTokenServices {
 					"Could not fetch user details");
 		}
 	}
+
 }

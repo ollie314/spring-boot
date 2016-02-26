@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 the original author or authors.
+ * Copyright 2012-2016 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,6 +30,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
+
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.PropertyPlaceholderAutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionEvaluationReport;
@@ -44,11 +45,7 @@ import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.mock.web.MockServletContext;
 import org.springframework.web.context.support.AnnotationConfigWebApplicationContext;
 
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willAnswer;
@@ -118,7 +115,7 @@ public class AutoConfigurationReportLoggingInitializerTests {
 		context.register(Config.class);
 		context.refresh();
 		this.initializer.onApplicationEvent(new ContextRefreshedEvent(context));
-		assertThat(this.debugLog.size(), not(equalTo(0)));
+		assertThat(this.debugLog.size()).isNotEqualTo(0);
 	}
 
 	@Test
@@ -134,9 +131,8 @@ public class AutoConfigurationReportLoggingInitializerTests {
 			this.initializer.onApplicationEvent(new ApplicationFailedEvent(
 					new SpringApplication(), new String[0], context, ex));
 		}
-
-		assertThat(this.debugLog.size(), not(equalTo(0)));
-		assertThat(this.infoLog.size(), equalTo(0));
+		assertThat(this.debugLog.size()).isNotEqualTo(0);
+		assertThat(this.infoLog.size()).isEqualTo(0);
 	}
 
 	@Test
@@ -153,9 +149,8 @@ public class AutoConfigurationReportLoggingInitializerTests {
 			this.initializer.onApplicationEvent(new ApplicationFailedEvent(
 					new SpringApplication(), new String[0], context, ex));
 		}
-
-		assertThat(this.debugLog.size(), equalTo(0));
-		assertThat(this.infoLog.size(), not(equalTo(0)));
+		assertThat(this.debugLog.size()).isEqualTo(0);
+		assertThat(this.infoLog.size()).isNotEqualTo(0);
 	}
 
 	@Test
@@ -172,8 +167,7 @@ public class AutoConfigurationReportLoggingInitializerTests {
 		}
 		// Just basic sanity check, test is for visual inspection
 		String l = this.debugLog.get(0);
-		assertThat(l,
-				containsString("not a web application (OnWebApplicationCondition)"));
+		assertThat(l).contains("not a web application (OnWebApplicationCondition)");
 	}
 
 	@Test
@@ -182,7 +176,7 @@ public class AutoConfigurationReportLoggingInitializerTests {
 		context.register(Config.class);
 		new AutoConfigurationReportLoggingInitializer().initialize(context);
 		context.refresh();
-		assertNotNull(context.getBean(ConditionEvaluationReport.class));
+		assertThat(context.getBean(ConditionEvaluationReport.class)).isNotNull();
 	}
 
 	@Test
@@ -192,7 +186,7 @@ public class AutoConfigurationReportLoggingInitializerTests {
 		context.register(Config.class);
 		new AutoConfigurationReportLoggingInitializer().initialize(context);
 		context.refresh();
-		assertNotNull(context.getBean(ConditionEvaluationReport.class));
+		assertThat(context.getBean(ConditionEvaluationReport.class)).isNotNull();
 	}
 
 	@Test
@@ -200,8 +194,8 @@ public class AutoConfigurationReportLoggingInitializerTests {
 		this.initializer
 				.onApplicationEvent(new ApplicationFailedEvent(new SpringApplication(),
 						new String[0], null, new RuntimeException("Planned")));
-		assertThat(this.infoLog.get(0),
-				containsString("Unable to provide auto-configuration report"));
+		assertThat(this.infoLog.get(0))
+				.contains("Unable to provide auto-configuration report");
 	}
 
 	public static class MockLogFactory extends LogFactoryImpl {

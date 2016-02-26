@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 the original author or authors.
+ * Copyright 2012-2016 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ package org.springframework.boot.autoconfigure.web;
 import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 import org.springframework.boot.autoconfigure.web.ErrorProperties.IncludeStacktrace;
 import org.springframework.boot.context.embedded.AbstractEmbeddedServletContainerFactory;
@@ -53,17 +54,6 @@ public class BasicErrorController extends AbstractErrorController {
 	/**
 	 * Create a new {@link BasicErrorController} instance.
 	 * @param errorAttributes the error attributes
-	 * @deprecated since 1.3.0 in favor of
-	 * {@link #BasicErrorController(ErrorAttributes, ErrorProperties)}
-	 */
-	@Deprecated
-	public BasicErrorController(ErrorAttributes errorAttributes) {
-		this(errorAttributes, new ErrorProperties());
-	}
-
-	/**
-	 * Create a new {@link BasicErrorController} instance.
-	 * @param errorAttributes the error attributes
 	 * @param errorProperties configuration properties
 	 */
 	public BasicErrorController(ErrorAttributes errorAttributes,
@@ -79,7 +69,9 @@ public class BasicErrorController extends AbstractErrorController {
 	}
 
 	@RequestMapping(produces = "text/html")
-	public ModelAndView errorHtml(HttpServletRequest request) {
+	public ModelAndView errorHtml(HttpServletRequest request,
+			HttpServletResponse response) {
+		response.setStatus(getStatus(request).value());
 		Map<String, Object> model = getErrorAttributes(request,
 				isIncludeStackTrace(request, MediaType.TEXT_HTML));
 		return new ModelAndView("error", model);
@@ -116,7 +108,7 @@ public class BasicErrorController extends AbstractErrorController {
 	 * Provide access to the error properties.
 	 * @return the error properties
 	 */
-	protected final ErrorProperties getErrorProperties() {
+	protected ErrorProperties getErrorProperties() {
 		return this.errorProperties;
 	}
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 the original author or authors.
+ * Copyright 2012-2016 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ package org.springframework.boot.actuate.autoconfigure;
 import java.util.Properties;
 
 import org.jolokia.http.AgentServlet;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.actuate.autoconfigure.JolokiaAutoConfiguration.JolokiaCondition;
 import org.springframework.boot.actuate.endpoint.mvc.JolokiaMvcEndpoint;
@@ -38,6 +39,7 @@ import org.springframework.context.annotation.ConditionContext;
 import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.type.AnnotatedTypeMetadata;
+import org.springframework.web.servlet.mvc.ServletWrappingController;
 
 /**
  * {@link EnableAutoConfiguration Auto-configuration} for embedding Jolokia, a JMX-HTTP
@@ -60,7 +62,7 @@ import org.springframework.core.type.AnnotatedTypeMetadata;
  */
 @Configuration
 @ConditionalOnWebApplication
-@ConditionalOnClass({ AgentServlet.class })
+@ConditionalOnClass({ AgentServlet.class, ServletWrappingController.class })
 @Conditional(JolokiaCondition.class)
 @AutoConfigureBefore(ManagementWebSecurityAutoConfiguration.class)
 @AutoConfigureAfter(EmbeddedServletContainerAutoConfiguration.class)

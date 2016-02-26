@@ -22,6 +22,7 @@ import javax.servlet.Filter;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -30,6 +31,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.security.SecurityProperties;
+import org.springframework.boot.autoconfigure.web.ServerProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.devtools.remote.server.AccessManager;
 import org.springframework.boot.devtools.remote.server.Dispatcher;
@@ -75,6 +77,9 @@ public class RemoteDevToolsAutoConfiguration {
 	@Autowired
 	private DevToolsProperties properties;
 
+	@Autowired
+	private ServerProperties serverProperties;
+
 	@Bean
 	@ConditionalOnMissingBean
 	public AccessManager remoteDevToolsAccessManager() {
@@ -86,8 +91,9 @@ public class RemoteDevToolsAutoConfiguration {
 	@Bean
 	public HandlerMapper remoteDevToolsHealthCheckHandlerMapper() {
 		Handler handler = new HttpStatusHandler();
-		return new UrlHandlerMapper(this.properties.getRemote().getContextPath(),
-				handler);
+		return new UrlHandlerMapper((this.serverProperties.getContextPath() == null ? ""
+				: this.serverProperties.getContextPath())
+				+ this.properties.getRemote().getContextPath(), handler);
 	}
 
 	@Bean
@@ -107,6 +113,9 @@ public class RemoteDevToolsAutoConfiguration {
 		@Autowired
 		private DevToolsProperties properties;
 
+		@Autowired
+		private ServerProperties serverProperties;
+
 		@Bean
 		@ConditionalOnMissingBean
 		public SourceFolderUrlFilter remoteRestartSourceFolderUrlFilter() {
@@ -121,9 +130,11 @@ public class RemoteDevToolsAutoConfiguration {
 		}
 
 		@Bean
-		@ConditionalOnMissingBean(name = "remoteRestartHanderMapper")
-		public UrlHandlerMapper remoteRestartHanderMapper(HttpRestartServer server) {
-			String url = this.properties.getRemote().getContextPath() + "/restart";
+		@ConditionalOnMissingBean(name = "remoteRestartHandlerMapper")
+		public UrlHandlerMapper remoteRestartHandlerMapper(HttpRestartServer server) {
+			String url = (this.serverProperties.getContextPath() == null ? ""
+					: this.serverProperties.getContextPath())
+					+ this.properties.getRemote().getContextPath() + "/restart";
 			logger.warn("Listening for remote restart updates on " + url);
 			Handler handler = new HttpRestartServerHandler(server);
 			return new UrlHandlerMapper(url, handler);
@@ -140,11 +151,16 @@ public class RemoteDevToolsAutoConfiguration {
 		@Autowired
 		private DevToolsProperties properties;
 
+		@Autowired
+		private ServerProperties serverProperties;
+
 		@Bean
-		@ConditionalOnMissingBean(name = "remoteDebugHanderMapper")
-		public UrlHandlerMapper remoteDebugHanderMapper(
+		@ConditionalOnMissingBean(name = "remoteDebugHandlerMapper")
+		public UrlHandlerMapper remoteDebugHandlerMapper(
 				@Qualifier("remoteDebugHttpTunnelServer") HttpTunnelServer server) {
-			String url = this.properties.getRemote().getContextPath() + "/debug";
+			String url = (this.serverProperties.getContextPath() == null ? ""
+					: this.serverProperties.getContextPath())
+					+ this.properties.getRemote().getContextPath() + "/debug";
 			logger.warn("Listening for remote debug traffic on " + url);
 			Handler handler = new HttpTunnelServerHandler(server);
 			return new UrlHandlerMapper(url, handler);

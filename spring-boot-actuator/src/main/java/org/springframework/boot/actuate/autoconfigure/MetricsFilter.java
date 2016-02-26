@@ -30,6 +30,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+
 import org.springframework.boot.actuate.metrics.CounterService;
 import org.springframework.boot.actuate.metrics.GaugeService;
 import org.springframework.core.Ordered;
@@ -144,7 +145,8 @@ final class MetricsFilter extends OncePerRequestFilter {
 			return fixSpecialCharacters(bestMatchingPattern.toString());
 		}
 		Series series = getSeries(status);
-		if (Series.CLIENT_ERROR.equals(series) || Series.REDIRECTION.equals(series)) {
+		if (Series.CLIENT_ERROR.equals(series) || Series.SERVER_ERROR.equals(series)
+				|| Series.REDIRECTION.equals(series)) {
 			return UNKNOWN_PATH_SUFFIX;
 		}
 		return path;

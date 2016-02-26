@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 the original author or authors.
+ * Copyright 2012-2016 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package org.springframework.boot.web.servlet.view.velocity;
 
 import org.apache.struts.mock.MockServletContext;
 import org.junit.Test;
+
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -26,7 +27,7 @@ import org.springframework.web.context.support.AnnotationConfigWebApplicationCon
 import org.springframework.web.servlet.view.velocity.VelocityConfigurer;
 import org.springframework.web.servlet.view.velocity.VelocityView;
 
-import static org.junit.Assert.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Tests for {@link EmbeddedVelocityViewResolver}.
@@ -41,7 +42,7 @@ public class EmbeddedVelocityViewResolverTests {
 		EmbeddedVelocityViewResolver resolver = context
 				.getBean(EmbeddedVelocityViewResolver.class);
 		Object viewClass = ReflectionTestUtils.getField(resolver, "viewClass");
-		assertEquals(VelocityView.class, viewClass);
+		assertThat(viewClass).isEqualTo(VelocityView.class);
 	}
 
 	@Test
@@ -50,7 +51,7 @@ public class EmbeddedVelocityViewResolverTests {
 		EmbeddedVelocityViewResolver resolver = context
 				.getBean(EmbeddedVelocityViewResolver.class);
 		Object viewClass = ReflectionTestUtils.getField(resolver, "viewClass");
-		assertEquals(EmbeddedVelocityToolboxView.class, viewClass);
+		assertThat(viewClass).isEqualTo(EmbeddedVelocityToolboxView.class);
 	}
 
 	private ApplicationContext loadContext(Class<?> config) {

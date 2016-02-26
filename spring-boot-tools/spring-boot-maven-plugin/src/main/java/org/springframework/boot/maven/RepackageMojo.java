@@ -36,6 +36,7 @@ import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProject;
 import org.apache.maven.project.MavenProjectHelper;
 import org.apache.maven.shared.artifact.filter.collection.ArtifactsFilter;
+
 import org.springframework.boot.loader.tools.DefaultLaunchScript;
 import org.springframework.boot.loader.tools.LaunchScript;
 import org.springframework.boot.loader.tools.Layout;
@@ -247,9 +248,39 @@ public class RepackageMojo extends AbstractDependencyFilterMojo {
 	private LaunchScript getLaunchScript() throws IOException {
 		if (this.executable || this.embeddedLaunchScript != null) {
 			return new DefaultLaunchScript(this.embeddedLaunchScript,
-					this.embeddedLaunchScriptProperties);
+					buildLaunchScriptProperties());
 		}
 		return null;
+	}
+
+	private Properties buildLaunchScriptProperties() {
+		Properties properties = new Properties();
+		if (this.embeddedLaunchScriptProperties != null) {
+			properties.putAll(this.embeddedLaunchScriptProperties);
+		}
+		putIfMissing(properties, "initInfoProvides", this.project.getArtifactId());
+		putIfMissing(properties, "initInfoShortDescription", this.project.getName(),
+				this.project.getArtifactId());
+		putIfMissing(properties, "initInfoDescription",
+				removeLineBreaks(this.project.getDescription()), this.project.getName(),
+				this.project.getArtifactId());
+		return properties;
+	}
+
+	private String removeLineBreaks(String description) {
+		return (description == null ? null : description.replaceAll("\\s+", " "));
+	}
+
+	private void putIfMissing(Properties properties, String key,
+			String... valueCandidates) {
+		if (!properties.containsKey(key)) {
+			for (String candidate : valueCandidates) {
+				if (candidate != null && candidate.length() > 0) {
+					properties.put(key, candidate);
+					return;
+				}
+			}
+		}
 	}
 
 	/**

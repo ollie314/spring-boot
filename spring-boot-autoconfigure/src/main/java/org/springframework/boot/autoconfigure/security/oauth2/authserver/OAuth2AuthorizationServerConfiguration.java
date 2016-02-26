@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 the original author or authors.
+ * Copyright 2012-2016 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ import javax.annotation.PostConstruct;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -43,6 +44,7 @@ import org.springframework.security.oauth2.config.annotation.web.configuration.A
 import org.springframework.security.oauth2.config.annotation.web.configuration.AuthorizationServerEndpointsConfiguration;
 import org.springframework.security.oauth2.config.annotation.web.configuration.EnableAuthorizationServer;
 import org.springframework.security.oauth2.config.annotation.web.configurers.AuthorizationServerEndpointsConfigurer;
+import org.springframework.security.oauth2.config.annotation.web.configurers.AuthorizationServerSecurityConfigurer;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.token.TokenStore;
 
@@ -59,7 +61,7 @@ import org.springframework.security.oauth2.provider.token.TokenStore;
 @ConditionalOnClass(EnableAuthorizationServer.class)
 @ConditionalOnMissingBean(AuthorizationServerConfigurer.class)
 @ConditionalOnBean(AuthorizationServerEndpointsConfiguration.class)
-@EnableConfigurationProperties
+@EnableConfigurationProperties(AuthorizationServerProperties.class)
 public class OAuth2AuthorizationServerConfiguration
 		extends AuthorizationServerConfigurerAdapter {
 
@@ -75,6 +77,9 @@ public class OAuth2AuthorizationServerConfiguration
 	@Autowired(required = false)
 	private TokenStore tokenStore;
 
+	@Autowired
+	private AuthorizationServerProperties properties;
+
 	@Override
 	public void configure(ClientDetailsServiceConfigurer clients) throws Exception {
 		ClientDetailsServiceBuilder<InMemoryClientDetailsServiceBuilder>.ClientBuilder builder = clients
@@ -87,6 +92,19 @@ public class OAuth2AuthorizationServerConfiguration
 						AuthorityUtils.authorityListToSet(this.details.getAuthorities())
 								.toArray(new String[0]))
 				.scopes(this.details.getScope().toArray(new String[0]));
+
+		if (this.details.getAutoApproveScopes() != null) {
+			builder.autoApprove(
+					this.details.getAutoApproveScopes().toArray(new String[0]));
+		}
+		if (this.details.getAccessTokenValiditySeconds() != null) {
+			builder.accessTokenValiditySeconds(
+					this.details.getAccessTokenValiditySeconds());
+		}
+		if (this.details.getRefreshTokenValiditySeconds() != null) {
+			builder.refreshTokenValiditySeconds(
+					this.details.getRefreshTokenValiditySeconds());
+		}
 		if (this.details.getRegisteredRedirectUri() != null) {
 			builder.redirectUris(
 					this.details.getRegisteredRedirectUri().toArray(new String[0]));
@@ -104,6 +122,20 @@ public class OAuth2AuthorizationServerConfiguration
 		}
 	}
 
+	@Override
+	public void configure(AuthorizationServerSecurityConfigurer security)
+			throws Exception {
+		if (this.properties.getCheckTokenAccess() != null) {
+			security.checkTokenAccess(this.properties.getCheckTokenAccess());
+		}
+		if (this.properties.getTokenKeyAccess() != null) {
+			security.tokenKeyAccess(this.properties.getTokenKeyAccess());
+		}
+		if (this.properties.getRealm() != null) {
+			security.realm(this.properties.getRealm());
+		}
+	}
+
 	@Configuration
 	protected static class ClientDetailsLogger {
 
@@ -115,7 +147,7 @@ public class OAuth2AuthorizationServerConfiguration
 			String prefix = "security.oauth2.client";
 			boolean defaultSecret = this.credentials.isDefaultSecret();
 			logger.info(String.format(
-					"Initialized OAuth2 Client\n\n%s.clientId = %s\n%s.secret = %s\n\n",
+					"Initialized OAuth2 Client%n%n%s.clientId = %s%n%s.secret = %s%n%n",
 					prefix, this.credentials.getClientId(), prefix,
 					defaultSecret ? this.credentials.getClientSecret() : "****"));
 		}

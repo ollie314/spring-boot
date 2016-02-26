@@ -20,6 +20,7 @@ import java.io.File;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -32,7 +33,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  */
 public class DiskSpaceHealthIndicator extends AbstractHealthIndicator {
 
-	private static Log logger = LogFactory.getLog(DiskSpaceHealthIndicator.class);
+	private static final Log logger = LogFactory.getLog(DiskSpaceHealthIndicator.class);
 
 	private final DiskSpaceHealthIndicatorProperties properties;
 

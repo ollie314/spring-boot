@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 the original author or authors.
+ * Copyright 2012-2016 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,8 +28,10 @@ import javax.servlet.http.HttpServletResponse;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
+
 import org.springframework.boot.actuate.metrics.CounterService;
 import org.springframework.boot.actuate.metrics.GaugeService;
+import org.springframework.boot.test.EnvironmentTestUtils;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -51,11 +53,10 @@ import org.springframework.web.context.request.async.DeferredResult;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.util.NestedServletException;
 
-import static org.hamcrest.Matchers.equalTo;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.BDDMockito.willAnswer;
 import static org.mockito.BDDMockito.willThrow;
@@ -76,6 +77,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  *
  * @author Phillip Webb
  * @author Andy Wilkinson
+ * @author Stephane Nicoll
  */
 public class MetricFilterAutoConfigurationTests {
 
@@ -170,7 +172,18 @@ public class MetricFilterAutoConfigurationTests {
 	public void skipsFilterIfMissingServices() throws Exception {
 		AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext(
 				MetricFilterAutoConfiguration.class);
-		assertThat(context.getBeansOfType(Filter.class).size(), equalTo(0));
+		assertThat(context.getBeansOfType(Filter.class).size()).isEqualTo(0);
+		context.close();
+	}
+
+	@Test
+	public void skipsFilterIfPropertyDisabled() throws Exception {
+		AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
+		EnvironmentTestUtils.addEnvironment(context,
+				"endpoints.metrics.filter.enabled:false");
+		context.register(Config.class, MetricFilterAutoConfiguration.class);
+		context.refresh();
+		assertThat(context.getBeansOfType(Filter.class).size()).isEqualTo(0);
 		context.close();
 	}
 
@@ -255,13 +268,31 @@ public class MetricFilterAutoConfigurationTests {
 			fail();
 		}
 		catch (Exception ex) {
-			assertThat(result.getRequest().getAttribute(attributeName), is(nullValue()));
+			assertThat(result.getRequest().getAttribute(attributeName)).isNull();
 			verify(context.getBean(CounterService.class))
 					.increment("status.500.createFailure");
 		}
 		finally {
 			context.close();
 		}
+	}
+
+	@Test
+	public void records5xxxHttpInteractionsAsSingleMetric() throws Exception {
+		AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext(
+				Config.class, MetricFilterAutoConfiguration.class,
+				ServiceUnavailableFilter.class);
+		MetricsFilter filter = context.getBean(MetricsFilter.class);
+		MockMvc mvc = MockMvcBuilders.standaloneSetup(new MetricFilterTestController())
+				.addFilter(filter)
+				.addFilter(context.getBean(ServiceUnavailableFilter.class)).build();
+		mvc.perform(get("/unknownPath/1")).andExpect(status().isServiceUnavailable());
+		mvc.perform(get("/unknownPath/2")).andExpect(status().isServiceUnavailable());
+		verify(context.getBean(CounterService.class), times(2))
+				.increment("status.503.unmapped");
+		verify(context.getBean(GaugeService.class), times(2))
+				.submit(eq("response.unmapped"), anyDouble());
+		context.close();
 	}
 
 	@Configuration
@@ -359,6 +390,20 @@ public class MetricFilterAutoConfigurationTests {
 			// send redirect before filter chain is executed, like Spring Security sending
 			// us back to a login page
 			response.sendRedirect("http://example.com");
+		}
+
+	}
+
+	@Component
+	@Order(0)
+	public static class ServiceUnavailableFilter extends OncePerRequestFilter {
+
+		@Override
+		protected void doFilterInternal(HttpServletRequest request,
+				HttpServletResponse response, FilterChain chain)
+						throws ServletException, IOException {
+
+			response.sendError(HttpStatus.SERVICE_UNAVAILABLE.value());
 		}
 
 	}

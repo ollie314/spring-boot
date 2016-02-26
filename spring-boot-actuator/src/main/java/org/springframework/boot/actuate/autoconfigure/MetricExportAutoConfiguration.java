@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 the original author or authors.
+ * Copyright 2012-2016 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,7 +30,7 @@ import org.springframework.boot.actuate.metrics.export.MetricExporters;
 import org.springframework.boot.actuate.metrics.reader.CompositeMetricReader;
 import org.springframework.boot.actuate.metrics.reader.MetricReader;
 import org.springframework.boot.actuate.metrics.statsd.StatsdMetricWriter;
-import org.springframework.boot.actuate.metrics.writer.MetricWriter;
+import org.springframework.boot.actuate.metrics.writer.GaugeWriter;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -67,7 +67,7 @@ public class MetricExportAutoConfiguration {
 
 	@Autowired(required = false)
 	@ExportMetricWriter
-	private Map<String, MetricWriter> writers = Collections.emptyMap();
+	private Map<String, GaugeWriter> writers = Collections.emptyMap();
 
 	@Autowired(required = false)
 	private Map<String, Exporter> exporters = Collections.emptyMap();
@@ -75,7 +75,7 @@ public class MetricExportAutoConfiguration {
 	@Bean
 	@ConditionalOnMissingBean(name = "metricWritersMetricExporter")
 	public SchedulingConfigurer metricWritersMetricExporter() {
-		Map<String, MetricWriter> writers = new HashMap<String, MetricWriter>();
+		Map<String, GaugeWriter> writers = new HashMap<String, GaugeWriter>();
 		MetricReader reader = this.endpointReader;
 		if (reader == null && !CollectionUtils.isEmpty(this.readers)) {
 			reader = new CompositeMetricReader(
@@ -112,7 +112,7 @@ public class MetricExportAutoConfiguration {
 
 		private String aggregateKeyPattern = "k.d";
 
-		@Bean(name = "spring.metrics.export.CONFIGURATION_PROPERTIES")
+		@Bean(name = "spring.metrics.export-org.springframework.boot.actuate.metrics.export.MetricExportProperties")
 		@ConditionalOnMissingBean
 		public MetricExportProperties metricExportProperties() {
 			MetricExportProperties export = new MetricExportProperties();
