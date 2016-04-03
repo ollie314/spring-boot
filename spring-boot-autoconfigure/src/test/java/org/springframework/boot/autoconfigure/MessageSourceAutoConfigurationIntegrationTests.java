@@ -23,12 +23,12 @@ import org.junit.runner.RunWith;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.MessageSourceAutoConfigurationIntegrationTests.Config;
-import org.springframework.boot.test.IntegrationTest;
-import org.springframework.boot.test.SpringApplicationConfiguration;
+import org.springframework.boot.test.context.SpringApplicationConfiguration;
+import org.springframework.boot.test.context.SpringApplicationTest;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit4.SpringRunner;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -39,9 +39,9 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 @SpringApplicationConfiguration({ Config.class, MessageSourceAutoConfiguration.class,
 		PropertyPlaceholderAutoConfiguration.class })
-@RunWith(SpringJUnit4ClassRunner.class)
+@RunWith(SpringRunner.class)
 @DirtiesContext
-@IntegrationTest("spring.messages.basename:test/messages")
+@SpringApplicationTest("spring.messages.basename:test/messages")
 public class MessageSourceAutoConfigurationIntegrationTests {
 
 	@Autowired

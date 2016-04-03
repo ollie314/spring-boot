@@ -18,7 +18,6 @@ package org.springframework.boot.autoconfigure.cache;
 
 import java.util.Collection;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.cache.Cache;
@@ -41,15 +40,17 @@ import org.springframework.context.annotation.Configuration;
 @Conditional(CacheCondition.class)
 class GenericCacheConfiguration {
 
-	@Autowired
-	CacheManagerCustomizerInvoker customizerInvoker;
+	private final CacheManagerCustomizers customizers;
+
+	GenericCacheConfiguration(CacheManagerCustomizers customizers) {
+		this.customizers = customizers;
+	}
 
 	@Bean
 	public SimpleCacheManager cacheManager(Collection<Cache> caches) {
 		SimpleCacheManager cacheManager = new SimpleCacheManager();
 		cacheManager.setCaches(caches);
-		this.customizerInvoker.customize(cacheManager);
-		return cacheManager;
+		return this.customizers.customize(cacheManager);
 	}
 
 }

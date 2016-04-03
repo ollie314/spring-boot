@@ -18,7 +18,6 @@ package org.springframework.boot.autoconfigure.cache;
 
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -43,11 +42,15 @@ import org.springframework.data.redis.core.RedisTemplate;
 @Conditional(CacheCondition.class)
 class RedisCacheConfiguration {
 
-	@Autowired
-	private CacheProperties cacheProperties;
+	private final CacheProperties cacheProperties;
 
-	@Autowired
-	CacheManagerCustomizerInvoker customizerInvoker;
+	private final CacheManagerCustomizers customizerInvoker;
+
+	RedisCacheConfiguration(CacheProperties cacheProperties,
+			CacheManagerCustomizers customizerInvoker) {
+		this.cacheProperties = cacheProperties;
+		this.customizerInvoker = customizerInvoker;
+	}
 
 	@Bean
 	public RedisCacheManager cacheManager(RedisTemplate<Object, Object> redisTemplate) {
@@ -57,8 +60,7 @@ class RedisCacheConfiguration {
 		if (!cacheNames.isEmpty()) {
 			cacheManager.setCacheNames(cacheNames);
 		}
-		this.customizerInvoker.customize(cacheManager);
-		return cacheManager;
+		return this.customizerInvoker.customize(cacheManager);
 	}
 
 }

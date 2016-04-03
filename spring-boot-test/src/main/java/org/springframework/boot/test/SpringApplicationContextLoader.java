@@ -29,6 +29,7 @@ import java.util.Set;
 import org.springframework.beans.BeanUtils;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.context.web.ServletContextApplicationContextInitializer;
+import org.springframework.boot.test.context.SpringApplicationTest;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -54,7 +55,7 @@ import org.springframework.web.context.support.GenericWebApplicationContext;
 /**
  * A {@link ContextLoader} that can be used to test Spring Boot applications (those that
  * normally startup using {@link SpringApplication}). Can be used to test non-web features
- * (like a repository layer) or start an fully-configured embedded servlet container.
+ * (like a repository layer) or start a fully-configured embedded servlet container.
  * <p>
  * Use {@code @WebIntegrationTest} (or {@code @IntegrationTest} with
  * {@code @WebAppConfiguration}) to indicate that you want to use a real servlet container
@@ -66,10 +67,15 @@ import org.springframework.web.context.support.GenericWebApplicationContext;
  * @author Dave Syer
  * @author Phillip Webb
  * @author Andy Wilkinson
- * @see IntegrationTest
- * @see WebIntegrationTest
- * @see TestRestTemplate
+ * @see org.springframework.boot.test.context.SpringApplicationTest
+ * @see org.springframework.boot.test.IntegrationTest
+ * @see org.springframework.boot.test.WebIntegrationTest
+ * @deprecated since 1.4.0 in favor of
+ * {@link SpringApplicationTest @SpringApplicationTest}
+ * {@link org.springframework.boot.test.context.SpringApplicationContextLoader} can also
+ * be considered if absolutely necessary.
  */
+@Deprecated
 public class SpringApplicationContextLoader extends AbstractContextLoader {
 
 	@Override

@@ -39,12 +39,15 @@ import org.springframework.test.context.ContextConfiguration;
  * @author Sam Brannen
  * @see SpringApplicationContextLoader
  * @see ContextConfiguration
+ * @deprecated since 1.4.0 in favor of
+ * {@link org.springframework.boot.test.context.SpringApplicationConfiguration}
  */
 @ContextConfiguration(loader = SpringApplicationContextLoader.class)
 @Documented
 @Inherited
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
+@Deprecated
 public @interface SpringApplicationConfiguration {
 
 	/**

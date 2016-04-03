@@ -29,7 +29,9 @@ import org.springframework.test.context.web.WebMergedContextConfiguration;
  *
  * @author Phillip Webb
  * @since 1.2.1
+ * @deprecated Since 1.4.0
  */
+@Deprecated
 class WebAppIntegrationTestContextBootstrapper extends DefaultTestContextBootstrapper {
 
 	@Override

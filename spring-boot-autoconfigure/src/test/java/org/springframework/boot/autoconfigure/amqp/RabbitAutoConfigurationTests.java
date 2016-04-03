@@ -19,6 +19,7 @@ package org.springframework.boot.autoconfigure.amqp;
 import javax.net.SocketFactory;
 import javax.net.ssl.SSLSocketFactory;
 
+import org.aopalliance.aop.Advice;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
@@ -30,6 +31,7 @@ import org.springframework.amqp.rabbit.annotation.EnableRabbit;
 import org.springframework.amqp.rabbit.config.RabbitListenerConfigUtils;
 import org.springframework.amqp.rabbit.config.SimpleRabbitListenerContainerFactory;
 import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
+import org.springframework.amqp.rabbit.connection.CachingConnectionFactory.CacheMode;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitAdmin;
 import org.springframework.amqp.rabbit.core.RabbitMessagingTemplate;
@@ -38,10 +40,14 @@ import org.springframework.amqp.rabbit.listener.RabbitListenerContainerFactory;
 import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.beans.DirectFieldAccessor;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
-import org.springframework.boot.test.EnvironmentTestUtils;
+import org.springframework.boot.test.util.EnvironmentTestUtils;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
+import org.springframework.retry.backoff.ExponentialBackOffPolicy;
+import org.springframework.retry.policy.SimpleRetryPolicy;
+import org.springframework.retry.support.RetryTemplate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -52,6 +58,7 @@ import static org.mockito.Mockito.verify;
  *
  * @author Greg Turnquist
  * @author Stephane Nicoll
+ * @author Gary Russell
  */
 public class RabbitAutoConfigurationTests {
 
@@ -85,7 +92,7 @@ public class RabbitAutoConfigurationTests {
 	}
 
 	@Test
-	public void testRabbitTemplateWithOverrides() {
+	public void testConnectionFactoryWithOverrides() {
 		load(TestConfiguration.class, "spring.rabbitmq.host:remote-server",
 				"spring.rabbitmq.port:9000", "spring.rabbitmq.username:alice",
 				"spring.rabbitmq.password:secret", "spring.rabbitmq.virtual_host:/vhost");
@@ -97,7 +104,7 @@ public class RabbitAutoConfigurationTests {
 	}
 
 	@Test
-	public void testRabbitTemplateEmptyVirtualHost() {
+	public void testConnectionFactoryEmptyVirtualHost() {
 		load(TestConfiguration.class, "spring.rabbitmq.virtual_host:");
 		CachingConnectionFactory connectionFactory = this.context
 				.getBean(CachingConnectionFactory.class);
@@ -105,7 +112,7 @@ public class RabbitAutoConfigurationTests {
 	}
 
 	@Test
-	public void testRabbitTemplateVirtualHostNoLeadingSlash() {
+	public void testConnectionFactoryVirtualHostNoLeadingSlash() {
 		load(TestConfiguration.class, "spring.rabbitmq.virtual_host:foo");
 		CachingConnectionFactory connectionFactory = this.context
 				.getBean(CachingConnectionFactory.class);
@@ -113,7 +120,7 @@ public class RabbitAutoConfigurationTests {
 	}
 
 	@Test
-	public void testRabbitTemplateVirtualHostMultiLeadingSlashes() {
+	public void testConnectionFactoryVirtualHostMultiLeadingSlashes() {
 		load(TestConfiguration.class, "spring.rabbitmq.virtual_host:///foo");
 		CachingConnectionFactory connectionFactory = this.context
 				.getBean(CachingConnectionFactory.class);
@@ -121,11 +128,48 @@ public class RabbitAutoConfigurationTests {
 	}
 
 	@Test
-	public void testRabbitTemplateDefaultVirtualHost() {
+	public void testConnectionFactoryDefaultVirtualHost() {
 		load(TestConfiguration.class, "spring.rabbitmq.virtual_host:/");
 		CachingConnectionFactory connectionFactory = this.context
 				.getBean(CachingConnectionFactory.class);
 		assertThat(connectionFactory.getVirtualHost()).isEqualTo("/");
+	}
+
+	@Test
+	public void testRabbitTemplateMessageConverters() {
+		load(MessageConvertersConfiguration.class);
+		RabbitTemplate rabbitTemplate = this.context.getBean(RabbitTemplate.class);
+		assertThat(rabbitTemplate.getMessageConverter())
+				.isSameAs(this.context.getBean("myMessageConverter"));
+		DirectFieldAccessor dfa = new DirectFieldAccessor(rabbitTemplate);
+		assertThat(dfa.getPropertyValue("retryTemplate")).isNull();
+	}
+
+	@Test
+	public void testRabbitTemplateRetry() {
+		load(TestConfiguration.class, "spring.rabbitmq.template.retry.enabled:true",
+				"spring.rabbitmq.template.retry.maxAttempts:4",
+				"spring.rabbitmq.template.retry.initialInterval:2000",
+				"spring.rabbitmq.template.retry.multiplier:1.5",
+				"spring.rabbitmq.template.retry.maxInterval:5000",
+				"spring.rabbitmq.template.receiveTimeout:123",
+				"spring.rabbitmq.template.replyTimeout:456");
+		RabbitTemplate rabbitTemplate = this.context.getBean(RabbitTemplate.class);
+		DirectFieldAccessor dfa = new DirectFieldAccessor(rabbitTemplate);
+		assertThat(dfa.getPropertyValue("receiveTimeout")).isEqualTo(123L);
+		assertThat(dfa.getPropertyValue("replyTimeout")).isEqualTo(456L);
+		RetryTemplate retryTemplate = (RetryTemplate) dfa
+				.getPropertyValue("retryTemplate");
+		assertThat(retryTemplate).isNotNull();
+		dfa = new DirectFieldAccessor(retryTemplate);
+		SimpleRetryPolicy retryPolicy = (SimpleRetryPolicy) dfa
+				.getPropertyValue("retryPolicy");
+		ExponentialBackOffPolicy backOffPolicy = (ExponentialBackOffPolicy) dfa
+				.getPropertyValue("backOffPolicy");
+		assertThat(retryPolicy.getMaxAttempts()).isEqualTo(4);
+		assertThat(backOffPolicy.getInitialInterval()).isEqualTo(2000);
+		assertThat(backOffPolicy.getMultiplier()).isEqualTo(1.5);
+		assertThat(backOffPolicy.getMaxInterval()).isEqualTo(5000);
 	}
 
 	@Test
@@ -137,6 +181,21 @@ public class RabbitAutoConfigurationTests {
 		assertThat(connectionFactory).isEqualTo(rabbitTemplate.getConnectionFactory());
 		assertThat(connectionFactory.getHost()).isEqualTo("otherserver");
 		assertThat(connectionFactory.getPort()).isEqualTo(8001);
+	}
+
+	@Test
+	public void testConnectionFactoryCacheSettings() {
+		load(TestConfiguration.class, "spring.rabbitmq.cache.channel.size=23",
+				"spring.rabbitmq.cache.channel.checkoutTimeout=1000",
+				"spring.rabbitmq.cache.connection.mode=CONNECTION",
+				"spring.rabbitmq.cache.connection.size=2");
+		CachingConnectionFactory connectionFactory = this.context
+				.getBean(CachingConnectionFactory.class);
+		DirectFieldAccessor dfa = new DirectFieldAccessor(connectionFactory);
+		assertThat(dfa.getPropertyValue("channelCacheSize")).isEqualTo(23);
+		assertThat(dfa.getPropertyValue("cacheMode")).isEqualTo(CacheMode.CONNECTION);
+		assertThat(dfa.getPropertyValue("connectionCacheSize")).isEqualTo(2);
+		assertThat(dfa.getPropertyValue("channelCheckoutTimeout")).isEqualTo(1000L);
 	}
 
 	@Test
@@ -183,15 +242,25 @@ public class RabbitAutoConfigurationTests {
 						SimpleRabbitListenerContainerFactory.class);
 		rabbitListenerContainerFactory.setTxSize(10);
 		verify(rabbitListenerContainerFactory).setTxSize(10);
+		DirectFieldAccessor dfa = new DirectFieldAccessor(rabbitListenerContainerFactory);
+		Advice[] adviceChain = (Advice[]) dfa.getPropertyValue("adviceChain");
+		assertThat(adviceChain).isNull();
 	}
 
 	@Test
 	public void testRabbitListenerContainerFactoryWithCustomSettings() {
-		load(TestConfiguration.class, "spring.rabbitmq.listener.autoStartup:false",
+		load(MessageConvertersConfiguration.class,
+				"spring.rabbitmq.listener.retry.enabled:true",
+				"spring.rabbitmq.listener.retry.maxAttempts:4",
+				"spring.rabbitmq.listener.retry.initialInterval:2000",
+				"spring.rabbitmq.listener.retry.multiplier:1.5",
+				"spring.rabbitmq.listener.retry.maxInterval:5000",
+				"spring.rabbitmq.listener.autoStartup:false",
 				"spring.rabbitmq.listener.acknowledgeMode:manual",
 				"spring.rabbitmq.listener.concurrency:5",
 				"spring.rabbitmq.listener.maxConcurrency:10",
-				"spring.rabbitmq.listener.prefetch=40",
+				"spring.rabbitmq.listener.prefetch:40",
+				"spring.rabbitmq.listener.defaultRequeueRejected:false",
 				"spring.rabbitmq.listener.transactionSize:20");
 		SimpleRabbitListenerContainerFactory rabbitListenerContainerFactory = this.context
 				.getBean("rabbitListenerContainerFactory",
@@ -204,6 +273,26 @@ public class RabbitAutoConfigurationTests {
 		assertThat(dfa.getPropertyValue("maxConcurrentConsumers")).isEqualTo(10);
 		assertThat(dfa.getPropertyValue("prefetchCount")).isEqualTo(40);
 		assertThat(dfa.getPropertyValue("txSize")).isEqualTo(20);
+		assertThat(dfa.getPropertyValue("messageConverter"))
+				.isSameAs(this.context.getBean("myMessageConverter"));
+		assertThat(dfa.getPropertyValue("defaultRequeueRejected"))
+				.isEqualTo(Boolean.FALSE);
+		Advice[] adviceChain = (Advice[]) dfa.getPropertyValue("adviceChain");
+		assertThat(adviceChain).isNotNull();
+		assertThat(adviceChain.length).isEqualTo(1);
+		dfa = new DirectFieldAccessor(adviceChain[0]);
+		RetryTemplate retryTemplate = (RetryTemplate) dfa
+				.getPropertyValue("retryOperations");
+		assertThat(retryTemplate).isNotNull();
+		dfa = new DirectFieldAccessor(retryTemplate);
+		SimpleRetryPolicy retryPolicy = (SimpleRetryPolicy) dfa
+				.getPropertyValue("retryPolicy");
+		ExponentialBackOffPolicy backOffPolicy = (ExponentialBackOffPolicy) dfa
+				.getPropertyValue("backOffPolicy");
+		assertThat(retryPolicy.getMaxAttempts()).isEqualTo(4);
+		assertThat(backOffPolicy.getInitialInterval()).isEqualTo(2000);
+		assertThat(backOffPolicy.getMultiplier()).isEqualTo(1.5);
+		assertThat(backOffPolicy.getMaxInterval()).isEqualTo(5000);
 	}
 
 	@Test
@@ -326,12 +415,30 @@ public class RabbitAutoConfigurationTests {
 	}
 
 	@Configuration
+	protected static class MessageConvertersConfiguration {
+
+		@Bean
+		@Primary
+		public MessageConverter myMessageConverter() {
+			return mock(MessageConverter.class);
+		}
+
+		@Bean
+		public MessageConverter anotherMessageConverter() {
+			return mock(MessageConverter.class);
+		}
+
+	}
+
+	@Configuration
 	@EnableRabbit
 	protected static class EnableRabbitConfiguration {
+
 	}
 
 	@Configuration
 	protected static class NoEnableRabbitConfiguration {
+
 	}
 
 }

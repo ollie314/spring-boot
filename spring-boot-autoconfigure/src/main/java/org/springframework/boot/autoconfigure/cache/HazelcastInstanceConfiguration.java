@@ -23,7 +23,6 @@ import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.spring.cache.HazelcastCacheManager;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnSingleCandidate;
 import org.springframework.boot.autoconfigure.hazelcast.HazelcastConfigResourceCondition;
@@ -45,11 +44,14 @@ abstract class HazelcastInstanceConfiguration {
 	@ConditionalOnSingleCandidate(HazelcastInstance.class)
 	static class Existing {
 
-		@Autowired
-		private CacheProperties cacheProperties;
+		private final CacheProperties cacheProperties;
 
-		@Autowired
-		CacheManagerCustomizerInvoker customizerInvoker;
+		private final CacheManagerCustomizers customizers;
+
+		Existing(CacheProperties cacheProperties, CacheManagerCustomizers customizers) {
+			this.cacheProperties = cacheProperties;
+			this.customizers = customizers;
+		}
 
 		@Bean
 		public HazelcastCacheManager cacheManager(
@@ -63,8 +65,7 @@ abstract class HazelcastInstanceConfiguration {
 			}
 			HazelcastCacheManager cacheManager = new HazelcastCacheManager(
 					existingHazelcastInstance);
-			this.customizerInvoker.customize(cacheManager);
-			return cacheManager;
+			return this.customizers.customize(cacheManager);
 		}
 	}
 
@@ -73,11 +74,14 @@ abstract class HazelcastInstanceConfiguration {
 	@Conditional(ConfigAvailableCondition.class)
 	static class Specific {
 
-		@Autowired
-		private CacheProperties cacheProperties;
+		private final CacheProperties cacheProperties;
 
-		@Autowired
-		CacheManagerCustomizerInvoker customizerInvoker;
+		private final CacheManagerCustomizers customizers;
+
+		Specific(CacheProperties cacheProperties, CacheManagerCustomizers customizers) {
+			this.cacheProperties = cacheProperties;
+			this.customizers = customizers;
+		}
 
 		@Bean
 		public HazelcastInstance hazelcastInstance() throws IOException {
@@ -93,8 +97,7 @@ abstract class HazelcastInstanceConfiguration {
 		public HazelcastCacheManager cacheManager() throws IOException {
 			HazelcastCacheManager cacheManager = new HazelcastCacheManager(
 					hazelcastInstance());
-			this.customizerInvoker.customize(cacheManager);
-			return cacheManager;
+			return this.customizers.customize(cacheManager);
 		}
 
 	}

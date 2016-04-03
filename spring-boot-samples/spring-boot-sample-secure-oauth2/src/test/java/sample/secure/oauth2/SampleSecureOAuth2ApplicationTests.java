@@ -24,13 +24,13 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.SpringApplicationConfiguration;
-import org.springframework.boot.test.WebIntegrationTest;
+import org.springframework.boot.test.context.SpringApplicationTest;
+import org.springframework.boot.test.context.SpringApplicationTest.WebEnvironment;
 import org.springframework.hateoas.MediaTypes;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.codec.Base64;
 import org.springframework.security.web.FilterChainProxy;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.web.context.WebApplicationContext;
@@ -49,9 +49,8 @@ import static org.springframework.test.web.servlet.setup.MockMvcBuilders.webAppC
  *
  * @author Greg Turnquist
  */
-@RunWith(SpringJUnit4ClassRunner.class)
-@SpringApplicationConfiguration(SampleSecureOAuth2Application.class)
-@WebIntegrationTest(randomPort = true)
+@RunWith(SpringRunner.class)
+@SpringApplicationTest(webEnvironment = WebEnvironment.RANDOM_PORT)
 public class SampleSecureOAuth2ApplicationTests {
 
 	@Autowired
@@ -107,8 +106,8 @@ public class SampleSecureOAuth2ApplicationTests {
 		MvcResult flightsAction = this.mvc
 				.perform(get("/flights/1").accept(MediaTypes.HAL_JSON)
 						.header("Authorization", "Bearer " + accessToken))
-				.andExpect(
-						header().string("Content-Type", MediaTypes.HAL_JSON.toString()))
+				.andExpect(header().string("Content-Type",
+						MediaTypes.HAL_JSON.toString() + ";charset=UTF-8"))
 				.andExpect(status().isOk()).andDo(print()).andReturn();
 
 		Flight flight = this.objectMapper.readValue(

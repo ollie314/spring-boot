@@ -113,6 +113,96 @@ Application code that you want to run as your business logic can be implemented 
 
 
 
+[[howto-automatic-expansion]]
+=== Automatically expand properties at build time
+Rather than hardcoding some properties that are also specified in your project's build
+configuration, you can automatically expand them using the existing build configuration
+instead. This is possible in both Maven and Gradle.
+
+
+
+[[howto-automatic-expansion-maven]]
+==== Automatic property expansion using Maven
+You can automatically expand properties from the Maven project using resource
+filtering. If you use the `spring-boot-starter-parent` you can then refer to your
+Maven '`project properties`' via `@..@` placeholders, e.g.
+
+[source,properties,indent=0]
+----
+	app.encoding=@project.build.sourceEncoding@
+	app.java.version=@java.version@
+----
+
+TIP: The `spring-boot:run` can add `src/main/resources` directly to the classpath
+(for hot reloading purposes) if you enable the `addResources` flag. This circumvents
+the resource filtering and this feature. You can use the `exec:java` goal instead
+or customize the plugin's configuration, see the
+{spring-boot-maven-plugin-site}/usage.html[plugin usage page] for more details.
+
+If you don't use the starter parent, in your `pom.xml` you need (inside the `<build/>`
+element):
+
+[source,xml,indent=0]
+----
+    <resources>
+        <resource>
+            <directory>src/main/resources</directory>
+            <filtering>true</filtering>
+        </resource>
+    </resources>
+----
+
+and (inside `<plugins/>`):
+
+[source,xml,indent=0]
+----
+	<plugin>
+		<groupId>org.apache.maven.plugins</groupId>
+		<artifactId>maven-resources-plugin</artifactId>
+		<version>2.7</version>
+		<configuration>
+			<delimiters>
+				<delimiter>@</delimiter>
+			</delimiters>
+			<useDefaultDelimiters>false</useDefaultDelimiters>
+		</configuration>
+	</plugin>
+----
+
+NOTE: The `useDefaultDelimiters` property is important if you are using standard Spring
+placeholders in your configuration (e.g. `${foo}`). These may be expanded by the build if
+that property is not set to `false`.
+
+
+
+[[howto-automatic-expansion-gradle]]
+==== Automatic property expansion using Gradle
+You can automatically expand properties from the Gradle project by configuring the
+Java plugin's `processResources` task to do so:
+
+[source,groovy,indent=0]
+----
+	processResources {
+		expand(project.properties)
+	}
+----
+
+You can then refer to your Gradle project's properties via placeholders, e.g.
+
+[source,properties,indent=0]
+----
+	app.name=${name}
+	app.description=${description}
+----
+
+NOTE: Gradle's `expand` method uses Groovy's `SimpleTemplateEngine` which transforms
+`${..}` tokens. The `${..}` style conflicts with Spring's own property placeholder
+mechanism. To use Spring property placeholders together with automatic expansion
+the Spring property placeholders need to be escaped like `\${..}`.
+
+
+
+
 [[howto-externalize-configuration]]
 === Externalize the configuration of SpringApplication
 A `SpringApplication` has bean properties (mainly setters) so you can use its Java API as
@@ -438,6 +528,7 @@ in the '`Spring Boot features`' section, or the
 code.
 
 
+
 [[howto-user-a-random-unassigned-http-port]]
 === Use a random unassigned HTTP port
 To scan for a free port (using OS natives to prevent clashes) use `server.port=0`.
@@ -452,20 +543,21 @@ that and be sure that it has initialized is to add a `@Bean` of type
 `ApplicationListener<EmbeddedServletContainerInitializedEvent>` and pull the container
 out of the event when it is published.
 
-A useful practice for use with `@WebIntegrationTest` is to set `server.port=0`
-and then inject the actual ('`local`') port as a `@Value`. For example:
+Tests that use `@SpringApplicationTest(webEnvironment=WebEnvironment.RANDOM_PORT)` can
+also inject the actual port into a field using the `@LocalServerPort` annotation. For
+example:
 
 [source,java,indent=0,subs="verbatim,quotes,attributes"]
 ----
 	@RunWith(SpringJUnit4ClassRunner.class)
 	@SpringApplicationConfiguration(SampleDataJpaApplication.class)
-	@WebIntegrationTest("server.port:0")
-	public class CityRepositoryIntegrationTests {
+	@SpringApplicationTest(webEnvironment=WebEnvironment.RANDOM_PORT)
+	public class MyWebIntegrationTests {
 
 		@Autowired
 		EmbeddedWebApplicationContext server;
 
-		@Value("${local.server.port}")
+		@LocalServerPort
 		int port;
 
 		// ...
@@ -475,9 +567,10 @@ and then inject the actual ('`local`') port as a `@Value`. For example:
 
 [NOTE]
 ====
-Don't try to inject the port with `@Value` in a regular application. As we just saw, the
-value is only set once the container has initialized; contrary to a test, application code
-callbacks are processed early (i.e. before the value is actually available).
+`@LocalServerPort` is a meta-annotation for `@Value("${local.server.port}")`. Don't try
+to inject the port in a regular application. As we just saw, the value is only set once
+the container has initialized; contrary to a test, application code callbacks are
+processed early (i.e. before the value is actually available).
 ====
 
 
@@ -506,6 +599,8 @@ to use `application.properties` to configure HTTPS as the HTTP connector is the 
 the two to configure programmatically. See the
 {github-code}/spring-boot-samples/spring-boot-sample-tomcat-multi-connectors[`spring-boot-sample-tomcat-multi-connectors`]
 sample project for an example.
+
+
 
 [[howto-configure-accesslogs]]
 === Configure Access Logging
@@ -536,6 +631,7 @@ Access logging for undertow can be configured in a similar fashion
 
 Logs are stored in a `logs` directory relative to the working directory of the
 application. This can be customized via `server.undertow.accesslog.directory`.
+
 
 
 [[howto-use-behind-a-proxy-server]]
@@ -1437,6 +1533,21 @@ See _<<spring-boot-features.adoc#boot-features-configure-datasource>>_ in the
 {sc-spring-boot-autoconfigure}/jdbc/DataSourceAutoConfiguration.{sc-ext}[`DataSourceAutoConfiguration`]
 class for more details.
 
+[TIP]
+====
+You could also do that if you want to configure a JNDI data-source.
+
+[source,java,indent=0,subs="verbatim,quotes,attributes"]
+----
+	@Bean(destroyMethod="")
+	@ConfigurationProperties(prefix="datasource.mine")
+	public DataSource dataSource() throws Exception {
+		JndiDataSourceLookup dataSourceLookup = new JndiDataSourceLookup();
+		return dataSourceLookup.getDataSource("java:comp/env/jdbc/YourDS");
+	}
+----
+====
+
 
 
 [[howto-two-datasources]]
@@ -2108,6 +2219,95 @@ automatically compile your code whenever a file is saved.
 
 [[howto-build]]
 == Build
+
+
+
+[[howto-build-info]]
+=== Generate build information
+Both the Maven and Gradle plugin allow to generate build information containing
+the coordinates, name and version of the project. The plugin can also be configured
+to add additional properties through configuration. When such file is present,
+Spring Boot auto-configures a `BuildProperties` bean.
+
+To generate build information with Maven, add an execution for the `build-info` goal:
+
+[source,xml,indent=0,subs="verbatim,quotes,attributes"]
+----
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-maven-plugin</artifactId>
+				<version>{spring-boot-version}</version>
+				<executions>
+					<execution>
+						<goals>
+							<goal>build-info</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+	</build>
+----
+
+TIP: Check the {spring-boot-maven-plugin-site}/[Spring Boot Maven Plugin documentation]
+for more details.
+
+And to do the same with Gradle:
+
+[source,groovy,indent=0,subs="verbatim,attributes"]
+----
+	springBoot  {
+		buildInfo()
+	}
+----
+
+Additional properties can be added using the DSL:
+
+[source,groovy,indent=0,subs="verbatim,attributes"]
+----
+	springBoot  {
+		buildInfo {
+			additionalProperties = [
+				'foo': 'bar'
+			]
+		}
+	}
+----
+
+
+
+[[howto-git-info]]
+=== Generate git information
+
+Both Maven and Gradle allow to generate a `git.properties` file containing information
+about the state of your `git` source code repository when the project was built.
+
+For Maven users the `spring-boot-starter-parent` POM includes a pre-configured plugin to
+generate a `git.properties` file. Simply add the following declaration to your POM:
+
+[source,xml,indent=0]
+----
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>pl.project13.maven</groupId>
+				<artifactId>git-commit-id-plugin</artifactId>
+			</plugin>
+		</plugins>
+	</build>
+----
+
+Gradle users can achieve the same result using the
+https://plugins.gradle.org/plugin/com.gorylenko.gradle-git-properties[`gradle-git-properties`] plugin
+
+[source,groovy,indent=0]
+----
+	plugins {
+		id "com.gorylenko.gradle-git-properties" version "1.4.6"
+	}
+----
 
 
 
