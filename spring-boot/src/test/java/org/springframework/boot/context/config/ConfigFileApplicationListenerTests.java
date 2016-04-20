@@ -73,6 +73,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  *
  * @author Phillip Webb
  * @author Dave Syer
+ * @author Eddú Meléndez
  */
 public class ConfigFileApplicationListenerTests {
 
@@ -463,7 +464,7 @@ public class ConfigFileApplicationListenerTests {
 			assertThat(index)
 					.as("Loading profile '" + profile + "' not found in '" + log + "'")
 					.isNotEqualTo(-1);
-			log = log.substring(index + line.length(), log.length());
+			log = log.substring(index + line.length());
 		}
 	}
 
@@ -530,6 +531,22 @@ public class ConfigFileApplicationListenerTests {
 	}
 
 	@Test
+	public void yamlSetsMultiProfiles() throws Exception {
+		this.initializer.setSearchNames("testsetmultiprofiles");
+		this.initializer.postProcessEnvironment(this.environment, this.application);
+		assertThat(this.environment.getActiveProfiles()).containsExactly("dev",
+				"healthcheck");
+	}
+
+	@Test
+	public void yamlSetsMultiProfilesWithWithespace() throws Exception {
+		this.initializer.setSearchNames("testsetmultiprofileswhitespace");
+		this.initializer.postProcessEnvironment(this.environment, this.application);
+		assertThat(this.environment.getActiveProfiles()).containsExactly("dev",
+				"healthcheck");
+	}
+
+	@Test
 	public void yamlProfileCanBeChanged() throws Exception {
 		TestPropertySourceUtils.addInlinedPropertiesToEnvironment(this.environment,
 				"spring.profiles.active=prod");
@@ -587,7 +604,7 @@ public class ConfigFileApplicationListenerTests {
 	@Test
 	public void absoluteResourceDefaultsToFile() throws Exception {
 		String location = new File("src/test/resources/specificlocation.properties")
-				.getAbsolutePath();
+				.getAbsolutePath().replace("\\", "/");
 		TestPropertySourceUtils.addInlinedPropertiesToEnvironment(this.environment,
 				"spring.config.location=" + location);
 		this.initializer.postProcessEnvironment(this.environment, this.application);

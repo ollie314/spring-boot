@@ -26,7 +26,7 @@ import java.lang.annotation.Target;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.test.autoconfigure.OverrideAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.filter.TypeExcludeFilters;
-import org.springframework.boot.test.context.SpringApplicationTest;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.ComponentScan.Filter;
 import org.springframework.context.annotation.Import;
@@ -46,7 +46,7 @@ import org.springframework.test.web.servlet.MockMvc;
  * {@code @Component}, {@code @Service} or {@code @Repository} beans).
  * <p>
  * By default, tests annotated with {@code @WebMvcTest} will also auto-configure
- * {@link MockMvc} (include support for HtmlUnit WebDriver and Selenium WebClient). For
+ * {@link MockMvc} (include support for HtmlUnit WebClient and Selenium WebDriver). For
  * more fine-grained control of MockMVC that
  * {@link AutoConfigureMockMvc @AutoConfigureMockMvc} annotation can be used.
  * <p>
@@ -55,7 +55,7 @@ import org.springframework.test.web.servlet.MockMvc;
  * beans.
  * <p>
  * If you are looking to load your full application configuration and use MockMVC, you
- * should consider {@link SpringApplicationTest @SpringApplicationTest} combined with
+ * should consider {@link SpringBootTest @SpringBootTest} combined with
  * {@link AutoConfigureMockMvc @AutoConfigureMockMvc} rather than this annotation.
  *
  * @author Phillip Webb
@@ -69,7 +69,7 @@ import org.springframework.test.web.servlet.MockMvc;
 @BootstrapWith(WebMvcTestContextBootstrapper.class)
 @OverrideAutoConfiguration(enabled = false)
 @TypeExcludeFilters(WebMvcTypeExcludeFilter.class)
-@ImportWebMvcAutoConfiguration
+@AutoConfigureWebMvc
 @AutoConfigureMockMvc
 public @interface WebMvcTest {
 

@@ -23,6 +23,8 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+import org.springframework.boot.test.context.SpringBootContextLoader;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.core.annotation.AliasFor;
@@ -33,16 +35,16 @@ import org.springframework.test.context.ContextConfiguration;
  * {@code ApplicationContext} for integration tests.
  * <p>
  * Similar to the standard {@link ContextConfiguration @ContextConfiguration} but uses
- * Spring Boot's {@link SpringApplicationContextLoader}.
+ * Spring Boot's {@link SpringBootContextLoader}.
  *
  * @author Dave Syer
  * @author Sam Brannen
- * @see SpringApplicationContextLoader
+ * @see SpringBootContextLoader
  * @see ContextConfiguration
- * @deprecated since 1.4.0 in favor of
- * {@link org.springframework.boot.test.context.SpringApplicationConfiguration}
+ * @deprecated as of 1.4 in favor of {@link SpringBootTest} or direct use of
+ * {@link SpringBootContextLoader}.
  */
-@ContextConfiguration(loader = SpringApplicationContextLoader.class)
+@ContextConfiguration(loader = SpringBootContextLoader.class)
 @Documented
 @Inherited
 @Retention(RetentionPolicy.RUNTIME)

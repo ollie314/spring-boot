@@ -31,14 +31,12 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.PropertyPlaceholderAutoConfiguration;
-import org.springframework.boot.autoconfigure.mustache.MustacheAutoConfigurationIntegrationTests.Application;
 import org.springframework.boot.autoconfigure.web.DispatcherServletAutoConfiguration;
 import org.springframework.boot.autoconfigure.web.EmbeddedServletContainerAutoConfiguration;
 import org.springframework.boot.autoconfigure.web.ServerPropertiesAutoConfiguration;
 import org.springframework.boot.context.embedded.EmbeddedWebApplicationContext;
-import org.springframework.boot.test.context.SpringApplicationConfiguration;
-import org.springframework.boot.test.context.SpringApplicationTest;
-import org.springframework.boot.test.context.SpringApplicationTest.WebEnvironment;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -56,8 +54,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 @RunWith(SpringRunner.class)
 @DirtiesContext
-@SpringApplicationConfiguration(Application.class)
-@SpringApplicationTest(webEnvironment = WebEnvironment.RANDOM_PORT, properties = {
+@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT, properties = {
 		"spring.mustache.prefix:classpath:/mustache-templates/" })
 public class MustacheAutoConfigurationIntegrationTests {
 
@@ -82,17 +79,6 @@ public class MustacheAutoConfigurationIntegrationTests {
 		String body = new TestRestTemplate()
 				.getForObject("http://localhost:" + this.port + "/partial", String.class);
 		assertThat(body.contains("Hello World")).isTrue();
-	}
-
-	@Target(ElementType.TYPE)
-	@Retention(RetentionPolicy.RUNTIME)
-	@Documented
-	@Import({ MustacheAutoConfiguration.class,
-			EmbeddedServletContainerAutoConfiguration.class,
-			ServerPropertiesAutoConfiguration.class,
-			DispatcherServletAutoConfiguration.class,
-			PropertyPlaceholderAutoConfiguration.class })
-	protected @interface MinimalWebConfiguration {
 	}
 
 	@Configuration
@@ -120,6 +106,17 @@ public class MustacheAutoConfigurationIntegrationTests {
 			SpringApplication.run(Application.class, args);
 		}
 
+	}
+
+	@Target(ElementType.TYPE)
+	@Retention(RetentionPolicy.RUNTIME)
+	@Documented
+	@Import({ MustacheAutoConfiguration.class,
+			EmbeddedServletContainerAutoConfiguration.class,
+			ServerPropertiesAutoConfiguration.class,
+			DispatcherServletAutoConfiguration.class,
+			PropertyPlaceholderAutoConfiguration.class })
+	protected @interface MinimalWebConfiguration {
 	}
 
 }

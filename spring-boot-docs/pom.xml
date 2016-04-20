@@ -61,6 +61,16 @@
 			<optional>true</optional>
 		</dependency>
 		<dependency>
+			<groupId>com.couchbase.client</groupId>
+			<artifactId>java-client</artifactId>
+			<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>com.couchbase.client</groupId>
+			<artifactId>couchbase-spring-cache</artifactId>
+			<optional>true</optional>
+		</dependency>
+		<dependency>
 			<groupId>com.fasterxml.jackson.core</groupId>
 			<artifactId>jackson-databind</artifactId>
 			<optional>true</optional>
@@ -284,6 +294,11 @@
 		</dependency>
 		<dependency>
 			<groupId>org.crashub</groupId>
+			<artifactId>crash.cli</artifactId>
+			<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>org.crashub</groupId>
 			<artifactId>crash.shell</artifactId>
 			<optional>true</optional>
 			<exclusions>
@@ -321,6 +336,36 @@
 		<dependency>
 			<groupId>org.glassfish.jersey.containers</groupId>
 			<artifactId>jersey-container-servlet-core</artifactId>
+			<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>org.jboss</groupId>
+			<artifactId>jboss-transaction-spi</artifactId>
+			<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>org.jboss.logging</groupId>
+			<artifactId>jboss-logging</artifactId>
+			<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>org.jboss.narayana.jta</groupId>
+			<artifactId>jdbc</artifactId>
+			<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>org.jboss.narayana.jta</groupId>
+			<artifactId>jms</artifactId>
+			<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>org.jboss.narayana.jta</groupId>
+			<artifactId>jta</artifactId>
+			<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>org.jboss.narayana.jts</groupId>
+			<artifactId>narayana-jts-integration</artifactId>
 			<optional>true</optional>
 		</dependency>
 		<dependency>
@@ -798,6 +843,7 @@
 										<spring-boot-repo>${spring-boot-repo}</spring-boot-repo>
 										<spring-docs-version>${spring.version}</spring-docs-version>
 										<spring-security-docs-version>${spring-security.version}</spring-security-docs-version>
+										<spring-webservices-docs-version>${spring-ws.version}</spring-webservices-docs-version>
 										<github-tag>${github-tag}</github-tag>
 									</attributes>
 								</configuration>

@@ -32,11 +32,9 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.web.BasicErrorControllerIntegrationTests.TestConfiguration;
 import org.springframework.boot.autoconfigure.web.BasicErrorControllerMockMvcTests.MinimalWebConfiguration;
-import org.springframework.boot.test.context.SpringApplicationConfiguration;
-import org.springframework.boot.test.context.SpringApplicationTest;
-import org.springframework.boot.test.context.SpringApplicationTest.WebEnvironment;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
@@ -67,9 +65,8 @@ import static org.assertj.core.api.Assertions.assertThat;
  * @author Stephane Nicoll
  */
 @RunWith(SpringRunner.class)
-@SpringApplicationConfiguration(TestConfiguration.class)
 @DirtiesContext
-@SpringApplicationTest(webEnvironment = WebEnvironment.RANDOM_PORT)
+@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
 public class BasicErrorControllerIntegrationTests {
 
 	private ConfigurableApplicationContext context;

@@ -24,10 +24,8 @@ import org.junit.runner.RunWith;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.PropertyPlaceholderAutoConfiguration;
-import org.springframework.boot.autoconfigure.mustache.MustacheStandaloneIntegrationTests.Application;
-import org.springframework.boot.test.context.SpringApplicationConfiguration;
-import org.springframework.boot.test.context.SpringApplicationTest;
-import org.springframework.boot.test.context.SpringApplicationTest.WebEnvironment;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.annotation.DirtiesContext;
@@ -42,8 +40,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 @RunWith(SpringRunner.class)
 @DirtiesContext
-@SpringApplicationConfiguration(Application.class)
-@SpringApplicationTest(webEnvironment = WebEnvironment.NONE, properties = {
+@SpringBootTest(webEnvironment = WebEnvironment.NONE, properties = {
 		"env.foo=There", "foo=World" })
 public class MustacheStandaloneIntegrationTests {
 

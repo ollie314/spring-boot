@@ -513,6 +513,11 @@
 			<optional>true</optional>
 		</dependency>
 		<dependency>
+			<groupId>org.springframework.ws</groupId>
+			<artifactId>spring-ws-core</artifactId>
+			<optional>true</optional>
+		</dependency>
+		<dependency>
 			<groupId>org.thymeleaf</groupId>
 			<artifactId>thymeleaf</artifactId>
 			<optional>true</optional>
@@ -575,6 +580,16 @@
 		<dependency>
 			<groupId>org.jooq</groupId>
 			<artifactId>jooq</artifactId>
+			<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>org.jboss.narayana.jta</groupId>
+			<artifactId>jta</artifactId>
+			<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>org.jboss.narayana.jts</groupId>
+			<artifactId>narayana-jts-integration</artifactId>
 			<optional>true</optional>
 		</dependency>
 		<!-- Annotation processing -->
