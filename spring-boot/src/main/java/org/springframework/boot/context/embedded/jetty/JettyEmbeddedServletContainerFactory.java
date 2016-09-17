@@ -20,11 +20,14 @@ import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URL;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 
 import javax.servlet.ServletException;
@@ -48,11 +51,11 @@ import org.eclipse.jetty.server.SessionManager;
 import org.eclipse.jetty.server.SslConnectionFactory;
 import org.eclipse.jetty.server.handler.ErrorHandler;
 import org.eclipse.jetty.server.handler.HandlerWrapper;
+import org.eclipse.jetty.server.handler.gzip.GzipHandler;
 import org.eclipse.jetty.server.session.HashSessionManager;
 import org.eclipse.jetty.servlet.ErrorPageErrorHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.servlet.ServletMapping;
-import org.eclipse.jetty.servlets.gzip.GzipHandler;
 import org.eclipse.jetty.util.resource.JarResource;
 import org.eclipse.jetty.util.resource.Resource;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
@@ -66,15 +69,16 @@ import org.springframework.boot.context.embedded.Compression;
 import org.springframework.boot.context.embedded.EmbeddedServletContainer;
 import org.springframework.boot.context.embedded.EmbeddedServletContainerException;
 import org.springframework.boot.context.embedded.EmbeddedServletContainerFactory;
-import org.springframework.boot.context.embedded.ErrorPage;
 import org.springframework.boot.context.embedded.MimeMappings;
-import org.springframework.boot.context.embedded.ServletContextInitializer;
 import org.springframework.boot.context.embedded.Ssl;
 import org.springframework.boot.context.embedded.Ssl.ClientAuth;
+import org.springframework.boot.web.servlet.ErrorPage;
+import org.springframework.boot.web.servlet.ServletContextInitializer;
 import org.springframework.context.ResourceLoaderAware;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
+import org.springframework.util.ObjectUtils;
 import org.springframework.util.ReflectionUtils;
 import org.springframework.util.ResourceUtils;
 import org.springframework.util.StringUtils;
@@ -148,7 +152,7 @@ public class JettyEmbeddedServletContainerFactory
 	/**
 	 * Create a new {@link JettyEmbeddedServletContainerFactory} with the specified
 	 * context path and port.
-	 * @param contextPath root the context path
+	 * @param contextPath the root context path
 	 * @param port the port to listen on
 	 */
 	public JettyEmbeddedServletContainerFactory(String contextPath, int port) {
@@ -250,14 +254,26 @@ public class JettyEmbeddedServletContainerFactory
 		configureSslClientAuth(factory, ssl);
 		configureSslPasswords(factory, ssl);
 		factory.setCertAlias(ssl.getKeyAlias());
-		configureSslKeyStore(factory, ssl);
-		if (ssl.getCiphers() != null) {
+		if (!ObjectUtils.isEmpty(ssl.getCiphers())) {
 			factory.setIncludeCipherSuites(ssl.getCiphers());
+			factory.setExcludeCipherSuites();
 		}
 		if (ssl.getEnabledProtocols() != null) {
 			factory.setIncludeProtocols(ssl.getEnabledProtocols());
 		}
-		configureSslTrustStore(factory, ssl);
+		if (getSslStoreProvider() != null) {
+			try {
+				factory.setKeyStore(getSslStoreProvider().getKeyStore());
+				factory.setTrustStore(getSslStoreProvider().getTrustStore());
+			}
+			catch (Exception ex) {
+				throw new IllegalStateException("Unable to set SSL store", ex);
+			}
+		}
+		else {
+			configureSslKeyStore(factory, ssl);
+			configureSslTrustStore(factory, ssl);
+		}
 	}
 
 	private void configureSslClientAuth(SslContextFactory factory, Ssl ssl) {
@@ -339,13 +355,23 @@ public class JettyEmbeddedServletContainerFactory
 		}
 		if (shouldRegisterJspServlet()) {
 			addJspServlet(context);
+			context.addBean(new JasperInitializer(context), true);
 		}
+		addLocaleMappings(context);
 		ServletContextInitializer[] initializersToUse = mergeInitializers(initializers);
 		Configuration[] configurations = getWebAppContextConfigurations(context,
 				initializersToUse);
 		context.setConfigurations(configurations);
 		configureSession(context);
 		postProcessWebAppContext(context);
+	}
+
+	private void addLocaleMappings(WebAppContext context) {
+		for (Map.Entry<Locale, Charset> entry : getLocaleCharsetMappings().entrySet()) {
+			Locale locale = entry.getKey();
+			Charset charset = entry.getValue();
+			context.addLocaleEncoding(locale.toString(), charset.toString());
+		}
 	}
 
 	private void configureSession(WebAppContext context) {
@@ -615,9 +641,8 @@ public class JettyEmbeddedServletContainerFactory
 	}
 
 	/**
-	 * Set a Jetty {@link ThreadPool} that should be used by the {@link Server}.
-	 * If set to {@code null} (default), the {@link Server} creates
-	 * a {@link ThreadPool} implicitly.
+	 * Set a Jetty {@link ThreadPool} that should be used by the {@link Server}. If set to
+	 * {@code null} (default), the {@link Server} creates a {@link ThreadPool} implicitly.
 	 * @param threadPool a Jetty ThreadPool to be used
 	 */
 	public void setThreadPool(ThreadPool threadPool) {
@@ -742,14 +767,26 @@ public class JettyEmbeddedServletContainerFactory
 
 		@Override
 		public HandlerWrapper createGzipHandler(Compression compression) {
-			GzipHandler gzipHandler = new GzipHandler();
-			gzipHandler.setMinGzipSize(compression.getMinResponseSize());
-			gzipHandler.addIncludedMimeTypes(compression.getMimeTypes());
-			if (compression.getExcludedUserAgents() != null) {
-				gzipHandler.setExcluded(new HashSet<String>(
-						Arrays.asList(compression.getExcludedUserAgents())));
+			try {
+				Class<?> handlerClass = ClassUtils.forName(GZIP_HANDLER_JETTY_9_2,
+						getClass().getClassLoader());
+				HandlerWrapper gzipHandler = (HandlerWrapper) handlerClass.newInstance();
+				ReflectionUtils.findMethod(handlerClass, "setMinGzipSize", int.class)
+						.invoke(gzipHandler, compression.getMinResponseSize());
+				ReflectionUtils
+						.findMethod(handlerClass, "addIncludedMimeTypes", String[].class)
+						.invoke(gzipHandler, new Object[] { compression.getMimeTypes() });
+				if (compression.getExcludedUserAgents() != null) {
+					ReflectionUtils.findMethod(handlerClass, "setExcluded", Set.class)
+							.invoke(gzipHandler, new HashSet<String>(
+									Arrays.asList(compression.getExcludedUserAgents())));
+				}
+				return gzipHandler;
 			}
-			return gzipHandler;
+			catch (Exception ex) {
+				throw new RuntimeException("Failed to configure Jetty 9.2 gzip handler",
+						ex);
+			}
 		}
 
 	}
@@ -758,28 +795,13 @@ public class JettyEmbeddedServletContainerFactory
 
 		@Override
 		public HandlerWrapper createGzipHandler(Compression compression) {
-			try {
-				Class<?> handlerClass = ClassUtils.forName(GZIP_HANDLER_JETTY_9_3,
-						getClass().getClassLoader());
-				HandlerWrapper handler = (HandlerWrapper) handlerClass.newInstance();
-				ReflectionUtils.findMethod(handlerClass, "setMinGzipSize", int.class)
-						.invoke(handler, compression.getMinResponseSize());
-				ReflectionUtils
-						.findMethod(handlerClass, "setIncludedMimeTypes", String[].class)
-						.invoke(handler, new Object[] { compression.getMimeTypes() });
-				if (compression.getExcludedUserAgents() != null) {
-					ReflectionUtils
-							.findMethod(handlerClass, "setExcludedAgentPatterns",
-									String[].class)
-							.invoke(handler,
-									new Object[] { compression.getExcludedUserAgents() });
-				}
-				return handler;
+			GzipHandler handler = new GzipHandler();
+			handler.setMinGzipSize(compression.getMinResponseSize());
+			handler.setIncludedMimeTypes(compression.getMimeTypes());
+			if (compression.getExcludedUserAgents() != null) {
+				handler.setExcludedAgentPatterns(compression.getExcludedUserAgents());
 			}
-			catch (Exception ex) {
-				throw new RuntimeException("Failed to configure Jetty 9.3 gzip handler",
-						ex);
-			}
+			return handler;
 		}
 
 	}
@@ -881,6 +903,13 @@ public class JettyEmbeddedServletContainerFactory
 			ServerConnector connector = new ServerConnector(server, acceptors, selectors);
 			connector.setHost(address.getHostName());
 			connector.setPort(address.getPort());
+			for (ConnectionFactory connectionFactory : connector
+					.getConnectionFactories()) {
+				if (connectionFactory instanceof HttpConfiguration.ConnectionFactory) {
+					((HttpConfiguration.ConnectionFactory) connectionFactory)
+							.getHttpConfiguration().setSendServerVersion(false);
+				}
+			}
 			return connector;
 		}
 
@@ -898,11 +927,20 @@ public class JettyEmbeddedServletContainerFactory
 		public Server createServer(ThreadPool threadPool) {
 			Server server = new Server();
 			try {
-				ReflectionUtils.findMethod(Server.class, "setThreadPool", ThreadPool.class)
+				ReflectionUtils
+						.findMethod(Server.class, "setThreadPool", ThreadPool.class)
 						.invoke(server, threadPool);
 			}
-			catch (Exception e) {
-				throw new RuntimeException("Failed to configure Jetty 8 ThreadPool", e);
+			catch (Exception ex) {
+				throw new RuntimeException("Failed to configure Jetty 8 ThreadPool", ex);
+			}
+			try {
+				ReflectionUtils
+						.findMethod(Server.class, "setSendServerVersion", boolean.class)
+						.invoke(server, false);
+			}
+			catch (Exception ex) {
+				throw new RuntimeException("Failed to disable Server header", ex);
 			}
 			return server;
 		}

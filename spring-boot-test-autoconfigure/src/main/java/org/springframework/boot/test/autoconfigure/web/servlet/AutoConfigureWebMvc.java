@@ -23,10 +23,6 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
-import org.springframework.boot.autoconfigure.gson.GsonAutoConfiguration;
-import org.springframework.boot.autoconfigure.jackson.JacksonAutoConfiguration;
-import org.springframework.boot.autoconfigure.web.HttpMessageConvertersAutoConfiguration;
-import org.springframework.boot.autoconfigure.web.WebMvcAutoConfiguration;
 
 /**
  * {@link ImportAutoConfiguration Auto-configuration imports} for typical Spring MVC
@@ -34,14 +30,14 @@ import org.springframework.boot.autoconfigure.web.WebMvcAutoConfiguration;
  * using this annotation directly.
  *
  * @author Phillip Webb
+ * @author Andy Wilkinson
  * @since 1.4.0
  * @see WebMvcTest
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
-@ImportAutoConfiguration({ WebMvcAutoConfiguration.class, GsonAutoConfiguration.class,
-		JacksonAutoConfiguration.class, HttpMessageConvertersAutoConfiguration.class })
+@ImportAutoConfiguration
 public @interface AutoConfigureWebMvc {
 
 }

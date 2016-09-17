@@ -19,16 +19,26 @@ package org.springframework.boot;
 import java.io.PrintStream;
 
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
+import org.mockito.MockitoAnnotations;
 
 import org.springframework.boot.Banner.Mode;
 import org.springframework.boot.testutil.InternalOutputCapture;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.verify;
 
 /**
  * Tests for {@link Banner} and its usage by {@link SpringApplication}.
@@ -50,6 +60,14 @@ public class BannerTests {
 
 	@Rule
 	public InternalOutputCapture out = new InternalOutputCapture();
+
+	@Captor
+	private ArgumentCaptor<Class<?>> sourceClassCaptor;
+
+	@Before
+	public void setup() {
+		MockitoAnnotations.initMocks(this);
+	}
 
 	@Test
 	public void testDefaultBanner() throws Exception {
@@ -88,10 +106,18 @@ public class BannerTests {
 	public void testCustomBannerInContext() throws Exception {
 		SpringApplication application = new SpringApplication(Config.class);
 		application.setWebEnvironment(false);
-		final DummyBanner dummyBanner = new DummyBanner();
-		application.setBanner(dummyBanner);
+		Banner banner = mock(Banner.class);
+		application.setBanner(banner);
 		this.context = application.run();
-		assertThat(this.context.getBean("springBootBanner")).isEqualTo(dummyBanner);
+		Banner printedBanner = (Banner) this.context.getBean("springBootBanner");
+		assertThat(ReflectionTestUtils.getField(printedBanner, "banner"))
+				.isEqualTo(banner);
+		verify(banner).printBanner(any(Environment.class),
+				this.sourceClassCaptor.capture(), any(PrintStream.class));
+		reset(banner);
+		printedBanner.printBanner(this.context.getEnvironment(), null, System.out);
+		verify(banner).printBanner(any(Environment.class),
+				eq(this.sourceClassCaptor.getValue()), any(PrintStream.class));
 	}
 
 	@Test

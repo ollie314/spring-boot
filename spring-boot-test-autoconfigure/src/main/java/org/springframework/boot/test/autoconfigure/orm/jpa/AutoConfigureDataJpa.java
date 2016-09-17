@@ -23,11 +23,6 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
-import org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration;
-import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
-import org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration;
-import org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration;
-import org.springframework.boot.autoconfigure.transaction.TransactionAutoConfiguration;
 
 /**
  * {@link ImportAutoConfiguration Auto-configuration imports} for typical Data JPA tests.
@@ -35,16 +30,14 @@ import org.springframework.boot.autoconfigure.transaction.TransactionAutoConfigu
  * this annotation directly.
  *
  * @author Phillip Webb
+ * @author Andy Wilkinson
  * @since 1.4.0
  * @see DataJpaTest
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
-@ImportAutoConfiguration({ HibernateJpaAutoConfiguration.class,
-		JpaRepositoriesAutoConfiguration.class, TransactionAutoConfiguration.class,
-		DataSourceTransactionManagerAutoConfiguration.class,
-		DataSourceAutoConfiguration.class })
+@ImportAutoConfiguration
 public @interface AutoConfigureDataJpa {
 
 }
