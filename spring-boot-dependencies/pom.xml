@@ -150,14 +150,14 @@
 		<spring-batch.version>3.0.7.RELEASE</spring-batch.version>
 		<spring-data-releasetrain.version>Ingalls-M1</spring-data-releasetrain.version>
 		<spring-hateoas.version>0.21.0.RELEASE</spring-hateoas.version>
-		<spring-integration.version>4.3.4.RELEASE</spring-integration.version>
-		<spring-integration-java-dsl.version>1.2.0.RC1</spring-integration-java-dsl.version>
+		<spring-integration.version>4.3.5.BUILD-SNAPSHOT</spring-integration.version>
+		<spring-integration-java-dsl.version>1.2.0.RELEASE</spring-integration-java-dsl.version>
 		<spring-loaded.version>1.2.6.RELEASE</spring-loaded.version>
 		<spring-mobile.version>1.1.5.RELEASE</spring-mobile.version>
 		<spring-plugin.version>1.2.0.RELEASE</spring-plugin.version>
 		<spring-restdocs.version>1.2.0.BUILD-SNAPSHOT</spring-restdocs.version>
-		<spring-retry.version>1.2.0.BUILD-SNAPSHOT</spring-retry.version>
-		<spring-security.version>4.1.3.RELEASE</spring-security.version>
+		<spring-retry.version>1.2.0.RC1</spring-retry.version>
+		<spring-security.version>4.2.0.BUILD-SNAPSHOT</spring-security.version>
 		<spring-security-jwt.version>1.0.5.RELEASE</spring-security-jwt.version>
 		<spring-security-oauth.version>2.0.11.RELEASE</spring-security-oauth.version>
 		<spring-session.version>1.3.0.M2</spring-session.version>
@@ -165,7 +165,7 @@
 		<spring-social-facebook.version>2.0.3.RELEASE</spring-social-facebook.version>
 		<spring-social-linkedin.version>1.0.2.RELEASE</spring-social-linkedin.version>
 		<spring-social-twitter.version>1.1.2.RELEASE</spring-social-twitter.version>
-		<spring-ws.version>2.3.0.RELEASE</spring-ws.version>
+		<spring-ws.version>2.4.0.RELEASE</spring-ws.version>
 		<sqlite-jdbc.version>3.8.11.2</sqlite-jdbc.version>
 		<statsd-client.version>3.1.0</statsd-client.version>
 		<sun-mail.version>${javax-mail.version}</sun-mail.version>
