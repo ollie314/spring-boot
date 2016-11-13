@@ -20,11 +20,11 @@ import java.util.List;
 import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.actuate.autoconfigure.ManagementServerProperties.Security;
 import org.springframework.boot.actuate.condition.ConditionalOnEnabledEndpoint;
 import org.springframework.boot.actuate.endpoint.Endpoint;
 import org.springframework.boot.actuate.endpoint.EnvironmentEndpoint;
 import org.springframework.boot.actuate.endpoint.HealthEndpoint;
+import org.springframework.boot.actuate.endpoint.LoggersEndpoint;
 import org.springframework.boot.actuate.endpoint.MetricsEndpoint;
 import org.springframework.boot.actuate.endpoint.ShutdownEndpoint;
 import org.springframework.boot.actuate.endpoint.mvc.EndpointHandlerMapping;
@@ -33,6 +33,7 @@ import org.springframework.boot.actuate.endpoint.mvc.EnvironmentMvcEndpoint;
 import org.springframework.boot.actuate.endpoint.mvc.HealthMvcEndpoint;
 import org.springframework.boot.actuate.endpoint.mvc.HeapdumpMvcEndpoint;
 import org.springframework.boot.actuate.endpoint.mvc.LogFileMvcEndpoint;
+import org.springframework.boot.actuate.endpoint.mvc.LoggersMvcEndpoint;
 import org.springframework.boot.actuate.endpoint.mvc.MetricsMvcEndpoint;
 import org.springframework.boot.actuate.endpoint.mvc.MvcEndpoint;
 import org.springframework.boot.actuate.endpoint.mvc.MvcEndpoints;
@@ -49,6 +50,7 @@ import org.springframework.context.annotation.ConditionContext;
 import org.springframework.context.annotation.Conditional;
 import org.springframework.core.env.Environment;
 import org.springframework.core.type.AnnotatedTypeMetadata;
+import org.springframework.util.ClassUtils;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.cors.CorsConfiguration;
@@ -57,6 +59,7 @@ import org.springframework.web.cors.CorsConfiguration;
  * Configuration to expose {@link Endpoint} instances over Spring MVC.
  *
  * @author Dave Syer
+ * @author Ben Hale
  * @since 1.3.0
  */
 @ManagementContextConfiguration
@@ -140,14 +143,20 @@ public class EndpointWebMvcManagementContextConfiguration {
 	@ConditionalOnBean(HealthEndpoint.class)
 	@ConditionalOnEnabledEndpoint("health")
 	public HealthMvcEndpoint healthMvcEndpoint(HealthEndpoint delegate) {
-		Security security = this.managementServerProperties.getSecurity();
-		boolean secure = (security != null && security.isEnabled());
-		HealthMvcEndpoint healthMvcEndpoint = new HealthMvcEndpoint(delegate, secure);
+		HealthMvcEndpoint healthMvcEndpoint = new HealthMvcEndpoint(delegate,
+				isHealthSecure());
 		if (this.healthMvcEndpointProperties.getMapping() != null) {
 			healthMvcEndpoint
 					.addStatusMapping(this.healthMvcEndpointProperties.getMapping());
 		}
 		return healthMvcEndpoint;
+	}
+
+	@Bean
+	@ConditionalOnBean(LoggersEndpoint.class)
+	@ConditionalOnEnabledEndpoint("loggers")
+	public LoggersMvcEndpoint loggersMvcEndpoint(LoggersEndpoint delegate) {
+		return new LoggersMvcEndpoint(delegate);
 	}
 
 	@Bean
@@ -169,6 +178,17 @@ public class EndpointWebMvcManagementContextConfiguration {
 	@ConditionalOnEnabledEndpoint(value = "shutdown", enabledByDefault = false)
 	public ShutdownMvcEndpoint shutdownMvcEndpoint(ShutdownEndpoint delegate) {
 		return new ShutdownMvcEndpoint(delegate);
+	}
+
+	private boolean isHealthSecure() {
+		return isSpringSecurityAvailable()
+				&& this.managementServerProperties.getSecurity().isEnabled();
+	}
+
+	private boolean isSpringSecurityAvailable() {
+		return ClassUtils.isPresent(
+				"org.springframework.security.config.annotation.web.WebSecurityConfigurer",
+				getClass().getClassLoader());
 	}
 
 	private static class LogFileCondition extends SpringBootCondition {

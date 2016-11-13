@@ -424,6 +424,41 @@ public abstract class AbstractEmbeddedServletContainerFactoryTests {
 				.contains("scheme=https");
 	}
 
+	@Test
+	public void serverHeaderIsDisabledByDefaultWhenUsingSsl() throws Exception {
+		AbstractEmbeddedServletContainerFactory factory = getFactory();
+		factory.setSsl(getSsl(null, "password", "src/test/resources/test.jks"));
+		this.container = factory.getEmbeddedServletContainer(
+				new ServletRegistrationBean(new ExampleServlet(true, false), "/hello"));
+		this.container.start();
+		SSLConnectionSocketFactory socketFactory = new SSLConnectionSocketFactory(
+				new SSLContextBuilder()
+						.loadTrustMaterial(null, new TrustSelfSignedStrategy()).build());
+		HttpClient httpClient = HttpClients.custom().setSSLSocketFactory(socketFactory)
+				.build();
+		ClientHttpResponse response = getClientResponse(getLocalUrl("https", "/hello"),
+				HttpMethod.GET, new HttpComponentsClientHttpRequestFactory(httpClient));
+		assertThat(response.getHeaders().get("Server")).isNullOrEmpty();
+	}
+
+	@Test
+	public void serverHeaderCanBeCustomizedWhenUsingSsl() throws Exception {
+		AbstractEmbeddedServletContainerFactory factory = getFactory();
+		factory.setServerHeader("MyServer");
+		factory.setSsl(getSsl(null, "password", "src/test/resources/test.jks"));
+		this.container = factory.getEmbeddedServletContainer(
+				new ServletRegistrationBean(new ExampleServlet(true, false), "/hello"));
+		this.container.start();
+		SSLConnectionSocketFactory socketFactory = new SSLConnectionSocketFactory(
+				new SSLContextBuilder()
+						.loadTrustMaterial(null, new TrustSelfSignedStrategy()).build());
+		HttpClient httpClient = HttpClients.custom().setSSLSocketFactory(socketFactory)
+				.build();
+		ClientHttpResponse response = getClientResponse(getLocalUrl("https", "/hello"),
+				HttpMethod.GET, new HttpComponentsClientHttpRequestFactory(httpClient));
+		assertThat(response.getHeaders().get("Server")).containsExactly("MyServer");
+	}
+
 	protected final void testBasicSslWithKeyStore(String keyStore) throws Exception {
 		AbstractEmbeddedServletContainerFactory factory = getFactory();
 		addTestTxtFile(factory);
@@ -673,9 +708,6 @@ public abstract class AbstractEmbeddedServletContainerFactoryTests {
 				.getEmbeddedServletContainer(sessionServletRegistration());
 		this.container.start();
 		String s3 = getResponse(getLocalUrl("/session"));
-		System.out.println(s1);
-		System.out.println(s2);
-		System.out.println(s3);
 		String message = "Session error s1=" + s1 + " s2=" + s2 + " s3=" + s3;
 		assertThat(s2.split(":")[0]).as(message).isEqualTo(s1.split(":")[1]);
 		assertThat(s3.split(":")[0]).as(message).isEqualTo(s2.split(":")[1]);
